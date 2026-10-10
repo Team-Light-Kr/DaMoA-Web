@@ -14,7 +14,7 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY', 'damoa-secret-key-change-in-prod'
 CORS(app, origins='*')
 
 # Discord OAuth2 Configuration
-DISCORD_CLIENT_ID = os.getenv('DISCORD_CLIENT_ID', '1547952661196701777')
+DISCORD_CLIENT_ID = os.getenv('DISCORD_CLIENT_ID', '1558397761861451806')
 DISCORD_CLIENT_SECRET = os.getenv('DISCORD_CLIENT_SECRET', '')
 DISCORD_REDIRECT_URI = os.getenv('DISCORD_REDIRECT_URI', 'https://damoa.teamlight.pe.kr/auth/callback')
 DISCORD_API_BASE = 'https://discord.com/api/v10'

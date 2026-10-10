@@ -75,7 +75,7 @@ function platformIcon(pid, size = 20) {
 // ── Auth ────────────────────────────────────────────────────
 function loginWithDiscord() {
     const params = new URLSearchParams({
-        client_id: '1547952661196701777',
+        client_id: '1558397761861451806',
         redirect_uri: window.location.origin + '/auth/callback',
         response_type: 'code',
         scope: 'identify guilds',
@@ -242,6 +242,38 @@ async function onServerChange() {
     state.channels = chRes.channels || [];
     state.roles    = roleRes.roles   || [];
     state.settings = setRes.settings || [];
+
+    if (state.demo && (!state.settings || state.settings.length === 0)) {
+        state.channels = [
+            { id: '1001', name: '방송-알림' },
+            { id: '1002', name: '헤비-소식' },
+            { id: '1003', name: '일반' },
+        ];
+        state.roles = [
+            { id: '9001', name: '헤비 알림' },
+            { id: '9002', name: '방송 알림' },
+        ];
+        state.settings = [
+            {
+                platform: 'cime', slot: 1, channel_id: '1001', channel_name: '방송-알림',
+                role_id: null, custom_message: null, target_url: 'https://ci.me/@demo', enabled: true,
+                kinds: ['live_start', 'live_end', 'live_scheduled'],
+                kinds_labels: ['방송 시작', '방송 종료', '방송 예약'],
+            },
+            {
+                platform: 'youtube', slot: 1, channel_id: '1002', channel_name: '헤비-소식',
+                role_id: null, custom_message: null, target_url: 'https://www.youtube.com/@hebich', enabled: true,
+                kinds: ['post', 'short', 'live_start', 'live_end'],
+                kinds_labels: ['새 영상', '새 쇼츠', '방송 시작', '방송 종료'],
+            },
+            {
+                platform: 'chzzk', slot: 1, channel_id: '1001', channel_name: '방송-알림',
+                role_id: null, custom_message: null, target_url: 'https://chzzk.naver.com/live/demo', enabled: true,
+                kinds: ['live_start', 'live_end', 'live_scheduled'],
+                kinds_labels: ['방송 시작', '방송 종료', '방송 예약'],
+            },
+        ];
+    }
 
     renderNotiList();
 }
@@ -523,6 +555,14 @@ async function init() {
 
     // Load platforms (always)
     apiFetch('/api/platforms').then(r => { if (r.platforms) state.platforms = r.platforms; });
+
+    // Check query params for demo mode
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('demo') === '1') {
+        enterDemo();
+        showSection('settings');
+        return;
+    }
 
     if (state.token) {
         try {
