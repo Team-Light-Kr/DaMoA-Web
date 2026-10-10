@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>다모아 대시보드 · Team Light</title>
+    <meta name="description" content="다양한 플랫폼의 방송·콘텐츠 알림을 Discord 서버에서 한눈에 관리하세요.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<!-- App Shell -->
+<div id="app">
+    <!-- ─── Sidebar ─── -->
+    <aside id="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-logo">
+                <i class="fas fa-satellite-dish"></i>
+            </div>
+            <div class="brand-text">
+                <span class="brand-name">다모아</span>
+                <span class="brand-sub">NOTIFIER</span>
+            </div>
+        </div>
+
+        <div class="sidebar-section-label">YOUR WORKSPACE</div>
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item" data-section="home" id="nav-home">
+                <i class="fas fa-th-large"></i><span>대시보드</span>
+            </a>
+            <a href="#" class="nav-item active" data-section="settings" id="nav-settings">
+                <i class="fas fa-sliders-h"></i><span>알림 설정</span>
+            </a>
+            <a href="#" class="nav-item" data-section="status" id="nav-status">
+                <i class="fas fa-chart-bar"></i><span>현황판</span>
+            </a>
+            <a href="#" class="nav-item" data-section="guide" id="nav-guide">
+                <i class="fas fa-book-open"></i><span>가이드</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <div class="sidebar-pill-track">
+                <span class="pill pill-1"></span><span class="pill pill-2"></span>
+                <span class="pill pill-3"></span><span class="pill pill-4"></span>
+                <span class="pill pill-5"></span><span class="pill pill-6"></span>
+            </div>
+            <div class="sidebar-links" style="margin-top: 10px; font-size: 11px; display: flex; flex-direction: column; gap: 6px; color: var(--c-text-3);">
+                <a href="https://discord.gg/ZnWmyyXF5s" target="_blank" style="color: var(--c-accent); font-weight: 600; text-decoration: none;"><i class="fab fa-discord"></i> 공식 서포트 서버</a>
+                <div style="display: flex; gap: 8px;">
+                    <a href="/pp" style="text-decoration: none; color: inherit;">개인정보</a>
+                    <span>·</span>
+                    <a href="/tos" style="text-decoration: none; color: inherit;">이용약관</a>
+                </div>
+            </div>
+            <div class="sidebar-tagline">조금 더 가까이, DaMoA.<br><span>NOTIFIER DASHBOARD</span></div>
+        </div>
+    </aside>
+
+    <!-- ─── Main ─── -->
+    <div class="main-wrapper">
+        <!-- Top Bar -->
+        <header id="topbar">
+            <div class="topbar-left">
+                <span class="topbar-crumb" id="topbar-crumb">WORKSPACE</span>
+                <i class="fas fa-chevron-right topbar-sep"></i>
+                <span class="topbar-page" id="topbar-page">알림 설정</span>
+            </div>
+            <div class="topbar-right">
+                <!-- Logged-out -->
+                <button class="btn-login" id="btn-login" onclick="loginWithDiscord()">
+                    <i class="fab fa-discord"></i> 로그인
+                </button>
+                <!-- Logged-in -->
+                <div class="user-info" id="user-info" style="display:none;">
+                    <img class="avatar" id="user-avatar" src="" alt="">
+                    <span class="username" id="user-name">-</span>
+                    <button class="btn-logout" id="btn-logout" onclick="logout()">로그아웃</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <main id="content">
+
+            <!-- ── HOME ── -->
+            <section id="section-home" class="page-section" style="display:none;">
+                <div class="hero-banner">
+                    <div class="hero-content">
+                        <div class="hero-eyebrow">Team Light · DaMoA Bot</div>
+                        <h1 class="hero-title">다모아 대시보드</h1>
+                        <p class="hero-desc">다양한 플랫폼의 알림을 Discord 서버로<br>한곳에서 모아 관리하세요</p>
+                        <div class="hero-badges">
+                            <span class="badge badge-platform"><i class="fas fa-layer-group"></i> 8 플랫폼</span>
+                            <span class="badge badge-slot"><i class="fas fa-bell"></i> 슬롯당 최대 30개</span>
+                            <span class="badge badge-time"><i class="fas fa-clock"></i> 24/7 모니터링</span>
+                        </div>
+                    </div>
+                    <div class="hero-art" aria-hidden="true">
+                        <div class="art-ring r1"></div>
+                        <div class="art-ring r2"></div>
+                        <div class="art-ring r3"></div>
+                        <div class="art-icon"><i class="fas fa-satellite-dish"></i></div>
+                    </div>
+                </div>
+
+                <h2 class="section-title">지원 플랫폼</h2>
+                <div class="platform-cards-grid" id="home-platform-grid">
+                    <!-- filled by JS -->
+                </div>
+            </section>
+
+            <!-- ── SETTINGS ── -->
+            <section id="section-settings" class="page-section active">
+                <!-- Demo banner -->
+                <div class="demo-banner" id="demo-banner" style="display:none;">
+                    <i class="fas fa-flask"></i>
+                    <span><strong>체험 공간</strong> · 마음껏 바꿔보세요. 실제 서버에는 적용되지 않아요.</span>
+                    <button class="btn-ghost-sm" onclick="resetDemo()">초기화</button>
+                </div>
+
+                <!-- Login required -->
+                <div class="login-wall" id="login-wall">
+                    <div class="login-card">
+                        <div class="login-icon"><i class="fab fa-discord"></i></div>
+                        <h2>Discord 로그인이 필요해요</h2>
+                        <p>서버 알림 설정을 관리하려면<br>Discord 계정으로 로그인하세요.</p>
+                        <button class="btn-discord" onclick="loginWithDiscord()">
+                            <i class="fab fa-discord"></i> Discord로 로그인
+                        </button>
+                        <button class="btn-demo" onclick="enterDemo()">
+                            <i class="fas fa-flask"></i> 체험 모드로 보기
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Server selected view -->
+                <div id="settings-main" style="display:none;">
+                    <div class="settings-layout">
+                        <!-- Left: Notification list -->
+                        <div class="settings-left">
+                            <div class="settings-header-row">
+                                <div>
+                                    <div class="eyebrow">MY NOTIFICATION SPACE</div>
+                                    <h1 class="page-title">알림 설정</h1>
+                                    <p class="page-desc">알림을 받을 채널과 멘션 역할을 선택하세요.</p>
+                                </div>
+                            </div>
+
+                            <!-- Notification list -->
+                            <div class="noti-list-card">
+                                <div class="noti-list-header">
+                                    <span class="noti-list-title">연결된 알림</span>
+                                    <span class="noti-count" id="noti-count">0 SOURCES</span>
+                                </div>
+                                <div class="noti-search-row">
+                                    <input class="noti-search" id="noti-search" type="text" placeholder="어떤 알림을 찾으세요?" oninput="filterNotis()">
+                                    <button class="btn-icon" onclick="refreshSettings()" title="새로고침"><i class="fas fa-redo-alt"></i></button>
+                                </div>
+                                <div class="noti-filter-tabs">
+                                    <button class="filter-tab active" data-filter="all" onclick="setFilter(this,'all')">전체</button>
+                                    <button class="filter-tab" data-filter="on" onclick="setFilter(this,'on')">켜짐</button>
+                                    <button class="filter-tab" data-filter="need" onclick="setFilter(this,'need')">확인 필요</button>
+                                </div>
+                                <div class="noti-list" id="noti-list">
+                                    <div class="noti-placeholder">
+                                        <i class="fas fa-bell-slash"></i>
+                                        <p>알림이 없습니다</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right: Server picker + tips -->
+                        <div class="settings-right">
+                            <div class="server-picker-card">
+                                <div class="server-picker-label">관리 중인 서버</div>
+                                <select class="server-select" id="server-select" onchange="onServerChange()">
+                                    <option value="">서버 선택...</option>
+                                </select>
+                            </div>
+
+                            <div class="tips-card">
+                                <div class="tips-title">작은 소식도 놓치지 않도록</div>
+                                <p class="tips-desc">알림별 상태를 확인하고 우리 서버에 맞게 조정해보세요.</p>
+                                <div class="tips-items">
+                                    <div class="tips-item">
+                                        <div class="tips-icon"><i class="fas fa-shield-alt"></i></div>
+                                        <div>
+                                            <div class="tips-item-title">대시보드 연결됨</div>
+                                            <div class="tips-item-sub">실제 봇 연결이 아닌 예시입니다</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <a href="#" class="tips-link"><i class="fas fa-external-link-alt"></i> 지금 사용하는 분을 위한 가이드</a>
+                                <a href="#" class="tips-link"><i class="fas fa-external-link-alt"></i> 내 정보는 어떻게 사용되나요?</a>
+                                <button class="btn-refresh-sm" onclick="refreshSettings()">
+                                    <i class="fas fa-sync-alt"></i> 상태 새로고침
+                                </button>
+                                <p class="tips-note">최초 수집은 기준만 저장해요. 플랫폼 접근 제한에 따라 알림이 늦어지거나 수집이 중지될 수 있습니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── STATUS ── -->
+            <section id="section-status" class="page-section" style="display:none;">
+                <div class="eyebrow">GLOBAL STATUS</div>
+                <h1 class="page-title">현황판</h1>
+                <p class="page-desc">다모아 봇이 참여한 모든 서버의 알림 현황입니다.</p>
+
+                <div class="metrics-row" id="metrics-row">
+                    <div class="metric-card">
+                        <i class="fas fa-bell metric-icon"></i>
+                        <div class="metric-val" id="metric-active">-</div>
+                        <div class="metric-label">활성 알림</div>
+                    </div>
+                    <div class="metric-card">
+                        <i class="fas fa-crosshairs metric-icon"></i>
+                        <div class="metric-val" id="metric-targets">-</div>
+                        <div class="metric-label">추적 대상</div>
+                    </div>
+                    <div class="metric-card">
+                        <i class="fas fa-server metric-icon"></i>
+                        <div class="metric-val" id="metric-servers">-</div>
+                        <div class="metric-label">참여 서버</div>
+                    </div>
+                    <div class="metric-card">
+                        <i class="fas fa-paper-plane metric-icon"></i>
+                        <div class="metric-val" id="metric-delivered">-</div>
+                        <div class="metric-label">총 전송</div>
+                    </div>
+                </div>
+
+                <h2 class="section-title" style="margin-top:2rem;">플랫폼별 현황</h2>
+                <div class="status-grid" id="status-grid">
+                    <!-- filled by JS -->
+                </div>
+            </section>
+
+            <!-- ── GUIDE ── -->
+            <section id="section-guide" class="page-section" style="display:none;">
+                <div class="eyebrow">GUIDE</div>
+                <h1 class="page-title">가이드</h1>
+                <p class="page-desc">다모아 봇 사용 방법을 알아보세요.</p>
+                <div class="guide-steps">
+                    <div class="guide-step">
+                        <div class="step-num">01</div>
+                        <div class="step-content">
+                            <h3>봇 초대하기</h3>
+                            <p><a href="https://discord.com/oauth2/authorize?client_id=1547952661196701777&permissions=536907776&scope=bot" target="_blank" class="link-accent">초대 링크</a>를 통해 다모아 봇을 서버에 초대합니다.</p>
+                        </div>
+                    </div>
+                    <div class="guide-step">
+                        <div class="step-num">02</div>
+                        <div class="step-content">
+                            <h3>알림 추가 <code>/알림추가</code></h3>
+                            <p>Discord에서 <code>/알림추가</code> 명령어로 플랫폼과 채널 URL을 등록합니다.</p>
+                        </div>
+                    </div>
+                    <div class="guide-step">
+                        <div class="step-num">03</div>
+                        <div class="step-content">
+                            <h3>알림 종류 선택</h3>
+                            <p>방송 시작·종료·예약 알림 등 원하는 종류를 플랫폼별로 설정합니다.</p>
+                        </div>
+                    </div>
+                    <div class="guide-step">
+                        <div class="step-num">04</div>
+                        <div class="step-content">
+                            <h3>대시보드에서 관리</h3>
+                            <p>이 대시보드에서 채널, 역할, 활성 여부를 간편하게 수정하세요.</p>
+                        </div>
+                    </div>
+                    <div class="guide-step">
+                        <div class="step-num">05</div>
+                        <div class="step-content">
+                            <h3>지원 및 커뮤니티</h3>
+                            <p>도움이 필요하거나 오류를 발견하셨다면 <a href="https://discord.gg/ZnWmyyXF5s" target="_blank" class="link-accent">공식 서포트 서버</a>로 문의해주세요.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+</div>
+
+<!-- ─── Settings Modal ─── -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal()">
+    <div class="modal" id="settings-modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <div class="modal-title-row">
+                <span class="modal-platform-icon" id="modal-icon-wrap"></span>
+                <h2 class="modal-title" id="modal-title">설정</h2>
+            </div>
+            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <!-- Target info -->
+            <div class="modal-target" id="modal-target-info"></div>
+
+            <!-- Channel -->
+            <div class="form-field">
+                <label class="form-label">알림 채널</label>
+                <div class="form-hint">봇이 메시지·링크·파일을 보낼 수 있는 채널을 선택하세요.</div>
+                <select class="form-select" id="modal-channel">
+                    <option value="">채널 선택...</option>
+                </select>
+            </div>
+
+            <!-- Role -->
+            <div class="form-field">
+                <label class="form-label">멘션 역할</label>
+                <div class="form-hint">선택한 역할만 멘션해요. 멘션 가능하게 설정된 역할을 권장합니다.</div>
+                <select class="form-select" id="modal-role">
+                    <option value="">멘션하지 않음</option>
+                </select>
+            </div>
+
+            <!-- Kinds -->
+            <div class="form-field" id="modal-kinds-field">
+                <label class="form-label">알림 종류</label>
+                <div class="form-hint">받을 알림 종류를 선택하세요.</div>
+                <div class="kinds-grid" id="modal-kinds"></div>
+            </div>
+
+            <!-- Enable toggle -->
+            <div class="form-field-row">
+                <div>
+                    <label class="form-label">알림 받기</label>
+                    <div class="form-hint">이 알림을 활성화합니다.</div>
+                </div>
+                <label class="toggle">
+                    <input type="checkbox" id="modal-enabled" checked>
+                    <span class="toggle-track"></span>
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-ghost" onclick="closeModal()">취소</button>
+            <button class="btn-primary" id="modal-save-btn" onclick="saveModal()">
+                <i class="fas fa-save"></i> 설정 저장
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script src="/script.js?v=2.0.0"></script>
+</body>
+</html>

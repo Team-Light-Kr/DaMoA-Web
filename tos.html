@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>서비스 이용약관 · 다모아 (DaMoA)</title>
+    <meta name="description" content="다모아(DaMoA) 서비스의 이용약관입니다.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .legal-container {
+            max-width: 820px;
+            margin: 0 auto;
+            padding: 48px 24px 80px;
+        }
+        .legal-header {
+            margin-bottom: 36px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--c-border);
+        }
+        .legal-nav-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--c-accent);
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 20px;
+            transition: transform var(--transition);
+        }
+        .legal-nav-back:hover {
+            transform: translateX(-3px);
+        }
+        .legal-title {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--c-text);
+            margin-bottom: 8px;
+            letter-spacing: -0.02em;
+        }
+        .legal-updated {
+            font-size: 13px;
+            color: var(--c-text-2);
+        }
+        .legal-card {
+            background: var(--c-surface);
+            border: 1px solid var(--c-border);
+            border-radius: var(--radius);
+            padding: 32px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+            line-height: 1.8;
+            color: #33394a;
+        }
+        .legal-section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--c-text);
+            margin: 28px 0 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .legal-section-title:first-child {
+            margin-top: 0;
+        }
+        .legal-section-title i {
+            color: var(--c-accent);
+            font-size: 16px;
+        }
+        .legal-list {
+            margin: 8px 0 16px 20px;
+        }
+        .legal-list li {
+            margin-bottom: 6px;
+        }
+        .legal-footer-links {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-top: 40px;
+            font-size: 13px;
+            color: var(--c-text-2);
+        }
+        .legal-footer-links a {
+            color: var(--c-accent);
+            font-weight: 500;
+        }
+        .legal-footer-links a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="legal-container">
+        <div class="legal-header">
+            <a href="/" class="legal-nav-back">
+                <i class="fas fa-arrow-left"></i> 대시보드로 돌아가기
+            </a>
+            <h1 class="legal-title">서비스 이용약관 (Terms of Service)</h1>
+            <div class="legal-updated">최종 수정일: 2026년 10월 10일 · Team Light</div>
+        </div>
+
+        <div class="legal-card">
+            <p>본 약관은 <strong>Team Light</strong>(이하 "운영진")가 제공하는 Discord 봇 및 웹 대시보드 <strong>다모아(DaMoA)</strong> 서비스(이하 "서비스")의 이용에 관한 조건 및 운영진과 이용자 간의 권리, 의무, 책임사항을 규정함을 목적으로 합니다.</p>
+
+            <h2 class="legal-section-title"><i class="fas fa-handshake"></i> 1. 약관의 효력 및 변경</h2>
+            <ul class="legal-list">
+                <li>본 약관은 서비스를 이용하고자 하는 모든 이용자(Discord 봇 초대 서버 관리자 및 대시보드 사용자)에게 효력이 발생합니다.</li>
+                <li>운영진은 합리적인 사유가 발생할 경우 관련 법령을 위배하지 않는 범위 내에서 본 약관을 개정할 수 있으며, 변경된 약관은 대시보드 공지 또는 웹사이트를 통해 공지합니다.</li>
+            </ul>
+
+            <h2 class="legal-section-title"><i class="fas fa-robot"></i> 2. 서비스의 제공 및 성격</h2>
+            <ul class="legal-list">
+                <li>다모아는 YouTube, 치지직, SOOP, 씨미, X(Twitter), Instagram, Spotify, 네이버 카페 등의 공개 콘텐츠 및 라이브 방송 상태를 주기적으로 감지하여 Discord 채널에 실시간 알림을 전달하는 서비스입니다.</li>
+                <li>운영진은 안정적인 서비스를 제공하기 위해 최선을 다하나, 무료 및 비영리/커뮤니티 서비스의 특성상 무중단 서비스 제공을 100% 보증하지는 않습니다.</li>
+            </ul>
+
+            <h2 class="legal-section-title"><i class="fas fa-ban"></i> 3. 이용자의 의무 및 금지 행위</h2>
+            <p>이용자는 다음 각 호의 행위를 하여서는 안 되며, 적발 시 사전 통보 없이 서비스 이용이 제한되거나 차단될 수 있습니다.</p>
+            <ul class="legal-list">
+                <li>다모아 봇, 서버, API 인프라에 비정상적인 트래픽을 유발하거나 서비스 거부 공격(DDoS, 도배 등)을 가하는 행위</li>
+                <li>Discord 서비스 이용약관 및 개발자 정책을 위반하는 행위</li>
+                <li>타인의 권리를 침해하거나 불법/유해 정보를 전파하기 위한 목적으로 봇을 악용하는 행위</li>
+                <li>서비스의 취약점을 탐색, 리버스 엔지니어링하거나 비인가된 방식으로 시스템에 접근하는 행위</li>
+            </ul>
+
+            <h2 class="legal-section-title"><i class="fas fa-shield-alt"></i> 4. 책임의 한계 및 면책</h2>
+            <ul class="legal-list">
+                <li><strong>외부 플랫폼 의존성:</strong> 다모아는 각 플랫폼(YouTube, 치지직, SOOP, X 등)의 공개 웹페이지 및 API를 기반으로 동작합니다. 각 플랫폼의 정책 변경, 차단, 점검, API 제한 등으로 인해 발생하는 알림 지연 또는 누락에 대해 운영진은 고의나 중대한 과실이 없는 한 책임을 지지 않습니다.</li>
+                <li><strong>서비스 변경 및 중단:</strong> 천재지변, 정기 점검, 호스팅 장애 등 불가피한 사정으로 서비스가 일시적으로 중단될 수 있으며, 이에 대한 별도의 손해배상 책임을 지지 않습니다.</li>
+                <li><strong>이용자 콘텐츠:</strong> 알림으로 전달되는 외부 방송 및 게시물 내용에 대한 저작권 및 모든 법적 책임은 해당 콘텐츠의 원작자 및 플랫폼에 있습니다.</li>
+            </ul>
+
+            <h2 class="legal-section-title"><i class="fas fa-external-link-alt"></i> 5. 분쟁 해결 및 관할</h2>
+            <p>본 약관의 해석 및 서비스 이용과 관련된 분쟁에 관하여는 대한민국 법령을 준거법으로 하며, 관할 법원은 민사소송법에 따릅니다.</p>
+
+            <h2 class="legal-section-title"><i class="fas fa-headset"></i> 6. 문의 및 지원</h2>
+            <p>서비스 이용 중 발생하는 문의, 제안, 오류 신고는 <a href="https://discord.gg/ZnWmyyXF5s" target="_blank" style="color:var(--c-accent);font-weight:600;">Team Light 공식 서포트 서버 (discord.gg/ZnWmyyXF5s)</a>를 통해 접수하실 수 있습니다.</p>
+        </div>
+
+        <div class="legal-footer-links">
+            <a href="/">홈 / 대시보드</a>
+            <span>·</span>
+            <a href="/pp">개인정보 처리방침 (Privacy Policy)</a>
+        </div>
+    </div>
+</body>
+</html>

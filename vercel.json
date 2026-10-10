@@ -1,0 +1,12 @@
+{
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/pp", "destination": "/pp.html" },
+    { "source": "/tos", "destination": "/tos.html" },
+    { "source": "/privacy", "destination": "/pp.html" },
+    { "source": "/terms", "destination": "/tos.html" },
+    { "source": "/api/(.*)", "destination": "/api/index.py" },
+    { "source": "/auth/(.*)", "destination": "/api/index.py" }
+  ]
+}
