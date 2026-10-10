@@ -16,7 +16,7 @@ CORS(app, origins='*')
 # Discord OAuth2 Configuration
 DISCORD_CLIENT_ID = os.getenv('DISCORD_CLIENT_ID', '1547952661196701777')
 DISCORD_CLIENT_SECRET = os.getenv('DISCORD_CLIENT_SECRET', '')
-DISCORD_REDIRECT_URI = os.getenv('DISCORD_REDIRECT_URI', '')
+DISCORD_REDIRECT_URI = os.getenv('DISCORD_REDIRECT_URI', 'https://damoa.teamlight.pe.kr/auth/callback')
 DISCORD_API_BASE = 'https://discord.com/api/v10'
 
 # Database configuration
