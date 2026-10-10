@@ -155,22 +155,39 @@ def get_user_me_guilds():
 @app.route('/api/bot/guilds', methods=['GET'])
 def get_bot_guilds():
     """Get list of guild IDs where DaMoA bot is present"""
+    bot_token = os.getenv('DISCORD_BOT_TOKEN')
+    guild_ids = set()
+
+    # 1. Fetch live guilds from Discord API if bot token is configured
+    if bot_token:
+        try:
+            res = _http_session.get(
+                f'{DISCORD_API_BASE}/users/@me/guilds',
+                headers=discord_headers(bot_token, is_bot=True),
+                timeout=5
+            )
+            if res.status_code == 200:
+                for g in res.json():
+                    guild_ids.add(str(g['id']))
+        except Exception as e:
+            app.logger.warning(f"Error fetching bot guilds from Discord API: {e}")
+
+    # 2. Also include any guilds with existing records in DB
     try:
         conn, use_neon = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('SELECT DISTINCT guild FROM settings')
         rows = cursor.fetchall()
         conn.close()
-
-        guild_ids = []
         for r in rows:
             if isinstance(r, dict):
-                guild_ids.append(str(r.get('guild')))
+                guild_ids.add(str(r.get('guild')))
             else:
-                guild_ids.append(str(r[0]))
-        return jsonify({'status': 'success', 'guild_ids': guild_ids})
+                guild_ids.add(str(r[0]))
     except Exception:
-        return jsonify({'status': 'success', 'guild_ids': []})
+        pass
+
+    return jsonify({'status': 'success', 'guild_ids': list(guild_ids)})
 
 
 @app.route('/api/settings', methods=['GET'])

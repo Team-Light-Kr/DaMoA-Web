@@ -1,5 +1,5 @@
 // ============================================================
-// DaMoA — Hebi Inspired Dashboard script.js v3.0
+// DaMoA — Hebi Inspired Dashboard script.js v3.1
 // Client ID: 1558397761861451806
 // Support Server: https://discord.gg/ZnWmyyXF5s
 // ============================================================
@@ -7,15 +7,40 @@
 const CLIENT_ID = '1558397761861451806';
 const MAX_SLOTS = 30;
 
-// Platform metadata
+// Official Platform Metadata & Image Icons
 const PLATFORMS = {
-    chzzk:      { name: '치지직', color: '#00FFA3', textColor: '#000', icon: 'fas fa-play' },
-    soop:       { name: 'SOOP', color: '#0C8CE9', textColor: '#fff', icon: 'fas fa-tv' },
-    youtube:    { name: 'YouTube', color: '#FF0000', textColor: '#fff', icon: 'fab fa-youtube' },
-    cime:       { name: '씨미', color: '#7B4EFF', textColor: '#fff', icon: 'fas fa-microphone' },
-    twitter:    { name: 'X (Twitter)', color: '#1e2338', textColor: '#fff', icon: 'fab fa-x-twitter' },
-    instagram:  { name: 'Instagram', color: '#E1306C', textColor: '#fff', icon: 'fab fa-instagram' },
-    naver_cafe: { name: '네이버 카페', color: '#03C75A', textColor: '#fff', icon: 'fas fa-coffee' },
+    youtube: {
+        name: 'YouTube',
+        icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT35KBL5ifTR1qh-c7-UZJc5bGYTI2kXnyaGDGnZmeuiA&s=10'
+    },
+    chzzk: {
+        name: '치지직',
+        icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTL5o8WMTcizruTWGFYaAhK61h-fAJWIeRGGI5g8NC9dA&s=10'
+    },
+    twitter: {
+        name: 'X (Twitter)',
+        icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFbqet-sK8lwsz1nprOmg_E1x993Wvuliu2MmbCwVcOw&s=10'
+    },
+    cime: {
+        name: '씨미',
+        icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRwoAs9YU5vS94EgfUPeMLdzq7EQLy7SlpRNK0i_6J8Bg&s=10'
+    },
+    instagram: {
+        name: 'Instagram',
+        icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR1mEo2-NnFTlPRLM13eEJf-qv66rqJUPRu-bAneh4Ncg&s=10'
+    },
+    spotify: {
+        name: '스포티파이',
+        icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRgoYNyRiH1MSuh1ZL_KreEfYiturY4NYE4RCGB4WhaWw&s=10'
+    },
+    naver_cafe: {
+        name: '네이버 카페',
+        icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSxadZQFctX2N4f0GoOvuwyhOZSZY-ekXKG3f01L6-Ugw&s=10'
+    },
+    soop: {
+        name: 'SOOP',
+        icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTTET5t-HJitRYOD1ESgF4E8MwfCTcwztdUaGdP6a7Wdg&s=10'
+    },
 };
 
 // Global State
@@ -159,7 +184,6 @@ function enterDemo() {
     state.demo = true;
     state.user = { id: 'demo_user', username: '체험 사용자', avatar: null };
     
-    // Restore or initialize demo settings
     let saved = null;
     try {
         saved = JSON.parse(localStorage.getItem('damoa_demo_settings'));
@@ -319,7 +343,6 @@ function renderStats() {
         botNote.textContent = '서버에 봇을 추가하세요';
     }
 
-    // Delivered & pending counts
     $('stat-delivered').textContent = state.demo ? '128' : '0';
     $('stat-pending').textContent = '0';
 }
@@ -357,7 +380,7 @@ function renderSourceList() {
     }
 
     container.innerHTML = items.map(s => {
-        const pMeta = PLATFORMS[s.platform] || { name: s.platform, color: '#666', textColor: '#fff', icon: 'fas fa-bell' };
+        const pMeta = PLATFORMS[s.platform] || { name: s.platform, icon: '' };
         const chName = s.channel_name ? `# ${s.channel_name}` : '채널 미선택';
         const targetLabel = s.target_name || s.target_url || '대상 미지정';
         const kindsCount = (s.kinds || []).length;
@@ -365,8 +388,8 @@ function renderSourceList() {
         return `
         <article class="source-row">
             <div class="source-identity">
-                <span class="platform-bubble" style="--color:${pMeta.color};">
-                    <i class="${pMeta.icon}" style="color:${pMeta.textColor};"></i>
+                <span class="platform-bubble">
+                    <img src="${pMeta.icon}" alt="${escapeHtml(pMeta.name)}">
                 </span>
                 <div class="source-info">
                     <strong>${escapeHtml(pMeta.name)}</strong>
@@ -428,7 +451,7 @@ function renderHistoryList() {
     }
 }
 
-// ── Guild Data Loading ──────────────────────────────────────
+// ── Guild Data Loading & Real-time Bot Sync ─────────────────
 async function loadUserData() {
     // 1. Fetch user profile from Discord
     const userRes = await fetch('https://discord.com/api/v10/users/@me', {
@@ -480,18 +503,19 @@ async function loadUserData() {
     // Auto-select first guild
     if (state.guilds.length > 0) {
         state.selectedGuild = state.guilds[0].id;
+        renderGuildSelect();
         await onGuildChange(state.selectedGuild);
+    } else {
+        renderGuildSelect();
+        renderStats();
     }
 
-    renderGuildSelect();
-    renderStats();
     switchView('dashboard');
     switchTab('overview');
 }
 
 async function onGuildChange(guildId) {
     state.selectedGuild = guildId;
-    checkBotInviteBanner();
 
     if (state.demo) return;
 
@@ -506,10 +530,24 @@ async function onGuildChange(guildId) {
         state.channels = chRes.channels || [];
         state.roles = roleRes.roles || [];
         state.settings = setRes.settings || [];
+
+        // Real-time synchronization: If channels or settings exist, bot is definitely connected!
+        if (state.channels.length > 0 || state.settings.length > 0) {
+            state.botGuilds.add(guildId);
+            
+            // Real-time update dropdown option text
+            const sel = $('dash-guild-select');
+            if (sel) {
+                const opt = sel.querySelector(`option[value="${guildId}"]`);
+                const guildObj = state.guilds.find(g => g.id === guildId);
+                if (opt && guildObj) opt.textContent = guildObj.name;
+            }
+        }
     } catch (e) {
         console.error('Failed to load guild details:', e);
     }
 
+    checkBotInviteBanner();
     renderSourceList();
     renderStats();
 }
@@ -764,15 +802,23 @@ function setupEventListeners() {
         renderSourceList();
     });
 
-    // Refresh buttons
-    $('btn-refresh-sources')?.addEventListener('click', () => {
-        if (state.selectedGuild) onGuildChange(state.selectedGuild);
-        showToast('최신 알림 상태를 새로고침했습니다.');
-    });
-    $('btn-aside-refresh')?.addEventListener('click', () => {
-        if (state.selectedGuild) onGuildChange(state.selectedGuild);
-        showToast('최신 상태를 동기화했습니다.');
-    });
+    // Refresh buttons with live bot guild recheck
+    const handleRefresh = async () => {
+        try {
+            const bg = await apiFetch('/api/bot/guilds');
+            if (bg && bg.guild_ids) {
+                bg.guild_ids.forEach(id => state.botGuilds.add(id));
+            }
+        } catch {}
+        if (state.selectedGuild) {
+            await onGuildChange(state.selectedGuild);
+        }
+        renderGuildSelect();
+        showToast('서버 및 봇 연결 상태를 실시간 동기화했습니다.');
+    };
+
+    $('btn-refresh-sources')?.addEventListener('click', handleRefresh);
+    $('btn-aside-refresh')?.addEventListener('click', handleRefresh);
 
     // Filter tabs (all / enabled / disabled)
     document.querySelectorAll('.source-filters button').forEach(btn => {
@@ -828,13 +874,11 @@ async function init() {
             await loadUserData();
         } catch (err) {
             console.error('Auth initialization error:', err);
-            // If Discord API returned 401 Unauthorized, token was revoked
             if (String(err).includes('401')) {
                 localStorage.removeItem('damoa_token');
                 state.token = null;
                 switchView('landing');
             } else {
-                // Otherwise temporary network error, don't erase token immediately
                 showToast(`Discord 연결 알림: ${err.message}`);
                 switchView('landing');
             }
