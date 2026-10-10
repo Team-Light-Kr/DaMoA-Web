@@ -517,7 +517,51 @@ def get_metrics():
         }})
 
 
+@app.route('/api/auth_code', methods=['POST'])
+@app.route('/auth_code', methods=['POST'])
+def exchange_auth_code():
+    """Exchange Discord OAuth2 authorization code for access token via JSON API"""
+    data = request.json or {}
+    code = data.get('code')
+    if not code:
+        return jsonify({'error': '인증 코드가 누락되었습니다.'}), 400
+
+    redirect_uri = data.get('redirect_uri') or DISCORD_REDIRECT_URI or 'https://damoa.teamlight.pe.kr/auth/callback'
+    payload = {
+        'client_id': DISCORD_CLIENT_ID,
+        'client_secret': DISCORD_CLIENT_SECRET,
+        'grant_type': 'authorization_code',
+        'code': code,
+        'redirect_uri': redirect_uri,
+    }
+    headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': DISCORD_USER_AGENT
+    }
+    try:
+        response = _http_session.post(f'{DISCORD_API_BASE}/oauth2/token', data=payload, headers=headers, timeout=10)
+    except Exception as e:
+        return jsonify({'error': f'Discord API 연결 오류: {e}'}), 500
+
+    if response.status_code != 200:
+        err_msg = '토큰 교환 실패'
+        try:
+            err_json = response.json()
+            err_msg = err_json.get('error_description') or err_json.get('error') or err_msg
+        except Exception:
+            pass
+        return jsonify({'error': err_msg}), response.status_code
+
+    token_data = response.json()
+    return jsonify({
+        'access_token': token_data.get('access_token'),
+        'token_type': token_data.get('token_type', 'Bearer'),
+        'expires_in': token_data.get('expires_in'),
+    })
+
+
 @app.route('/auth/callback')
+@app.route('/api/auth/callback')
 def auth_callback():
     """Handle Discord OAuth2 callback"""
     code = request.args.get('code')
@@ -555,3 +599,4 @@ def auth_callback():
     access_token = token_data.get('access_token')
 
     return redirect(f'/#access_token={access_token}&token_type={token_data.get("token_type", "Bearer")}')
+

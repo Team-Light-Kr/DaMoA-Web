@@ -6,7 +6,9 @@
     { "source": "/tos", "destination": "/tos.html" },
     { "source": "/privacy", "destination": "/pp.html" },
     { "source": "/terms", "destination": "/tos.html" },
-    { "source": "/api/(.*)", "destination": "/api/index.py" },
-    { "source": "/auth/(.*)", "destination": "/api/index.py" }
+    { "source": "/auth/callback", "destination": "/auth/callback.html" },
+    { "source": "/auth/(.*)", "destination": "/auth/callback.html" },
+    { "source": "/api/auth_code", "destination": "/api/auth_code.py" },
+    { "source": "/api/(.*)", "destination": "/api/index.py" }
   ]
 }
