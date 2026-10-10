@@ -1,593 +1,847 @@
 // ============================================================
-// DaMoA Dashboard — script.js v2.0
+// DaMoA — Hebi Inspired Dashboard script.js v3.0
+// Client ID: 1558397761861451806
+// Support Server: https://discord.gg/ZnWmyyXF5s
 // ============================================================
 
-const API = '';           // same origin
+const CLIENT_ID = '1558397761861451806';
 const MAX_SLOTS = 30;
 
-// ── State ──────────────────────────────────────────────────
+// Platform metadata
+const PLATFORMS = {
+    chzzk:      { name: '치지직', color: '#00FFA3', textColor: '#000', icon: 'fas fa-play' },
+    soop:       { name: 'SOOP', color: '#0C8CE9', textColor: '#fff', icon: 'fas fa-tv' },
+    youtube:    { name: 'YouTube', color: '#FF0000', textColor: '#fff', icon: 'fab fa-youtube' },
+    cime:       { name: '씨미', color: '#7B4EFF', textColor: '#fff', icon: 'fas fa-microphone' },
+    twitter:    { name: 'X (Twitter)', color: '#1e2338', textColor: '#fff', icon: 'fab fa-x-twitter' },
+    instagram:  { name: 'Instagram', color: '#E1306C', textColor: '#fff', icon: 'fab fa-instagram' },
+    naver_cafe: { name: '네이버 카페', color: '#03C75A', textColor: '#fff', icon: 'fas fa-coffee' },
+};
+
+// Global State
 const state = {
     token: null,
     user: null,
     demo: false,
     guilds: [],
-    botGuilds: [],
+    botGuilds: new Set(),
     selectedGuild: null,
     settings: [],
     channels: [],
     roles: [],
-    platforms: [],
     filter: 'all',
-    searchQ: '',
-    // Modal
-    modalSlot: null,
-};
-
-// ── Platform icon/color lookup ──────────────────────────────
-const PLATFORM_COLORS = {
-    youtube:    '#FF0000',
-    chzzk:      '#00FFA3',
-    soop:       '#0C8CE9',
-    cime:       '#7B4EFF',
-    twitter:    '#000000',
-    instagram:  '#E1306C',
-    spotify:    '#1DB954',
-    naver_cafe: '#03C75A',
-};
-const PLATFORM_ICONS_CLASS = {
-    youtube:    'fab fa-youtube',
-    chzzk:      'fas fa-broadcast-tower',
-    soop:       'fas fa-broadcast-tower',
-    cime:       'fas fa-microphone',
-    twitter:    'fab fa-x-twitter',
-    instagram:  'fab fa-instagram',
-    spotify:    'fab fa-spotify',
-    naver_cafe: 'fas fa-coffee',
-};
-const PLATFORM_NAMES = {
-    youtube: 'YouTube', chzzk: '치지직', soop: 'SOOP',
-    cime: '씨미', twitter: 'X (Twitter)', instagram: 'Instagram',
-    spotify: 'Spotify', naver_cafe: '네이버 카페',
+    searchQuery: '',
+    currentView: 'landing', // 'landing' | 'dashboard'
+    currentTab: 'overview', // 'overview' | 'settings' | 'history'
+    editingSlot: null,      // null for new, slot number for edit
 };
 
 // ── Helpers ─────────────────────────────────────────────────
-function apiFetch(path, opts = {}) {
+function $(id) { return document.getElementById(id); }
+
+function showToast(msg) {
+    const t = $('toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function escapeHtml(str) {
+    return String(str ?? '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}
+
+async function apiFetch(path, opts = {}) {
     const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
     if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
-    if (state.demo)  headers['X-Demo'] = '1';
-    return fetch(API + path, { ...opts, headers }).then(r => r.json());
+    if (state.demo) headers['X-Demo'] = '1';
+    try {
+        const res = await fetch(path, { ...opts, headers });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || `HTTP ${res.status}`);
+        }
+        return await res.json();
+    } catch (e) {
+        console.warn(`API Error [${path}]:`, e);
+        throw e;
+    }
 }
 
-function showToast(msg, type = '') {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.className = 'toast show' + (type ? ' ' + type : '');
-    clearTimeout(t._timer);
-    t._timer = setTimeout(() => { t.className = 'toast'; }, 3000);
-}
-
-function platformIcon(pid, size = 20) {
-    const cls = PLATFORM_ICONS_CLASS[pid] || 'fas fa-bell';
-    const col = PLATFORM_COLORS[pid] || '#888';
-    return `<span class="modal-platform-icon" style="background:${col};width:${size}px;height:${size}px;border-radius:${size > 24 ? '10' : '6'}px;display:inline-flex;align-items:center;justify-content:center;font-size:${Math.floor(size*.55)}px;"><i class="${cls}" style="color:#fff;"></i></span>`;
-}
-
-// ── Auth ────────────────────────────────────────────────────
+// ── Authentication ──────────────────────────────────────────
 function loginWithDiscord() {
+    const redirectUri = window.location.origin + '/auth/callback';
     const params = new URLSearchParams({
-        client_id: '1558397761861451806',
-        redirect_uri: window.location.origin + '/auth/callback',
+        client_id: CLIENT_ID,
+        redirect_uri: redirectUri,
         response_type: 'code',
         scope: 'identify guilds',
     });
-    window.location.href = `https://discord.com/oauth2/authorize?${params}`;
+    window.location.href = `https://discord.com/oauth2/authorize?${params.toString()}`;
 }
 
 function logout() {
     state.token = null;
     state.user = null;
     state.demo = false;
+    state.guilds = [];
+    state.settings = [];
     localStorage.removeItem('damoa_token');
-    showSection('settings');
-    updateAuthUI();
-    showLoginWall();
+    localStorage.removeItem('damoa_demo_settings');
+    switchView('landing');
+    showToast('로그아웃되었습니다.');
 }
 
+// ── View Switching ──────────────────────────────────────────
+function switchView(viewName) {
+    state.currentView = viewName;
+    const landing = $('view-landing');
+    const dash = $('view-dashboard');
+
+    if (viewName === 'dashboard') {
+        if (landing) landing.style.display = 'none';
+        if (dash) dash.style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'instant' });
+    } else {
+        if (landing) landing.style.display = 'block';
+        if (dash) dash.style.display = 'none';
+    }
+}
+
+function switchTab(tabName) {
+    state.currentTab = tabName;
+    
+    // Update active nav button
+    ['overview', 'settings', 'history'].forEach(t => {
+        const btn = $(`nav-tab-${t}`);
+        const mBtn = $(`m-nav-${t}`);
+        if (btn) btn.classList.toggle('active', t === tabName);
+        if (mBtn) mBtn.classList.toggle('active', t === tabName);
+    });
+
+    const crumb = $('crumb-title');
+    const heading = $('dash-section-title');
+    const desc = $('dash-section-desc');
+    const stats = $('stats-panel');
+    const mainGrid = $('main-grid-panel');
+    const historyPanel = $('panel-history');
+
+    if (tabName === 'overview') {
+        if (crumb) crumb.textContent = '대시보드';
+        if (heading) heading.textContent = '알림을 한눈에';
+        if (desc) desc.textContent = '치지직, SOOP, YouTube 등의 새로운 소식을 전하는 연결들을 살펴보세요.';
+        if (stats) stats.style.display = 'grid';
+        if (mainGrid) mainGrid.style.display = 'grid';
+        if (historyPanel) historyPanel.style.display = 'none';
+    } else if (tabName === 'settings') {
+        if (crumb) crumb.textContent = '알림 설정';
+        if (heading) heading.textContent = '알림 슬롯 설정';
+        if (desc) desc.textContent = '알림을 받을 채널과 멘션 역할, 방송 이벤트 종류를 세부적으로 조정하세요.';
+        if (stats) stats.style.display = 'none';
+        if (mainGrid) mainGrid.style.display = 'grid';
+        if (historyPanel) historyPanel.style.display = 'none';
+    } else if (tabName === 'history') {
+        if (crumb) crumb.textContent = '전송 기록';
+        if (heading) heading.textContent = '최근 전송 내역';
+        if (desc) desc.textContent = '서버 채널로 성공적으로 전달된 알림 기록입니다.';
+        if (stats) stats.style.display = 'none';
+        if (mainGrid) mainGrid.style.display = 'none';
+        if (historyPanel) historyPanel.style.display = 'block';
+        renderHistoryList();
+    }
+}
+
+// ── Demo Mode ───────────────────────────────────────────────
 function enterDemo() {
     state.demo = true;
-    showSection('settings');
-    document.getElementById('demo-banner').style.display = 'flex';
-    document.getElementById('login-wall').style.display = 'none';
-    document.getElementById('settings-main').style.display = 'block';
-    loadDemoGuilds();
+    state.user = { id: 'demo_user', username: '체험 사용자', avatar: null };
+    
+    // Restore or initialize demo settings
+    let saved = null;
+    try {
+        saved = JSON.parse(localStorage.getItem('damoa_demo_settings'));
+    } catch {}
+
+    state.guilds = [
+        { id: 'demo_guild_1', name: '✨ 체험용 디스코드 서버' }
+    ];
+    state.botGuilds = new Set(['demo_guild_1']);
+    state.selectedGuild = 'demo_guild_1';
+
+    state.channels = [
+        { id: 'ch_1', name: '방송-알림' },
+        { id: 'ch_2', name: '영상-소식' },
+        { id: 'ch_3', name: '일반-채팅' }
+    ];
+    state.roles = [
+        { id: 'role_1', name: '방송 알림' },
+        { id: 'role_2', name: '유튜브 알림' }
+    ];
+
+    if (saved && Array.isArray(saved) && saved.length > 0) {
+        state.settings = saved;
+    } else {
+        state.settings = [
+            {
+                slot: 1,
+                platform: 'chzzk',
+                target_url: 'https://chzzk.naver.com/4b73b508d4b31a89bba4c1800f40d172',
+                target_name: '치지직 공식 스트리머',
+                channel_id: 'ch_1',
+                channel_name: '방송-알림',
+                role_id: 'role_1',
+                role_name: '방송 알림',
+                enabled: true,
+                kinds: ['live_start', 'live_end', 'live_scheduled'],
+                custom_message: '치지직 라이브가 시작되었습니다! 함께해요 ✨'
+            },
+            {
+                slot: 2,
+                platform: 'soop',
+                target_url: 'https://ch.sooplive.co.kr/afreecatv',
+                target_name: 'SOOP 라이브 방송',
+                channel_id: 'ch_1',
+                channel_name: '방송-알림',
+                role_id: null,
+                role_name: null,
+                enabled: true,
+                kinds: ['live_start'],
+                custom_message: null
+            },
+            {
+                slot: 3,
+                platform: 'youtube',
+                target_url: 'https://www.youtube.com/@damoa_official',
+                target_name: 'YouTube 콘텐츠 채널',
+                channel_id: 'ch_2',
+                channel_name: '영상-소식',
+                role_id: 'role_2',
+                role_name: '유튜브 알림',
+                enabled: false,
+                kinds: ['live_start', 'live_end'],
+                custom_message: '새로운 영상이 업로드되었습니다!'
+            }
+        ];
+    }
+
+    $('banner-demo').style.display = 'flex';
+    $('banner-bot-invite').style.display = 'none';
+    updateUserInfoUI();
+    renderGuildSelect();
+    renderSourceList();
+    renderStats();
+    switchView('dashboard');
+    switchTab('overview');
+    showToast('체험 공간에 오신 것을 환영합니다! 마음껏 변경해보세요.');
 }
 
 function resetDemo() {
-    state.settings = [];
-    renderNotiList();
+    localStorage.removeItem('damoa_demo_settings');
+    enterDemo();
 }
 
-function updateAuthUI() {
-    const loggedIn = !!(state.token || state.demo);
-    document.getElementById('btn-login').style.display = loggedIn ? 'none' : '';
-    document.getElementById('user-info').style.display = loggedIn ? 'flex' : 'none';
+// ── UI Updates ──────────────────────────────────────────────
+function updateUserInfoUI() {
+    const avatarEl = $('dash-user-avatar');
+    const nameEl = $('dash-user-name');
+
     if (state.user) {
-        document.getElementById('user-name').textContent = state.user.username || state.user.global_name || '-';
-        const av = state.user.avatar
-            ? `https://cdn.discordapp.com/avatars/${state.user.id}/${state.user.avatar}.png?size=64`
-            : `https://cdn.discordapp.com/embed/avatars/0.png`;
-        document.getElementById('user-avatar').src = av;
-    } else if (state.demo) {
-        document.getElementById('user-name').textContent = '체험 사용자';
-        document.getElementById('user-avatar').src = 'https://cdn.discordapp.com/embed/avatars/5.png';
-    }
-}
-
-// ── Navigation ───────────────────────────────────────────────
-function showSection(id) {
-    document.querySelectorAll('.page-section').forEach(s => {
-        s.style.display = 'none';
-        s.classList.remove('active');
-    });
-    const el = document.getElementById('section-' + id);
-    if (el) { el.style.display = 'block'; el.classList.add('active'); }
-
-    document.querySelectorAll('.nav-item').forEach(a => a.classList.remove('active'));
-    const nav = document.getElementById('nav-' + id);
-    if (nav) nav.classList.add('active');
-
-    const labels = { home: '대시보드', settings: '알림 설정', status: '현황판', guide: '가이드' };
-    document.getElementById('topbar-page').textContent = labels[id] || id;
-
-    if (id === 'home') loadHomePlatforms();
-    if (id === 'status') loadStatus();
-}
-
-document.querySelectorAll('.nav-item[data-section]').forEach(el => {
-    el.addEventListener('click', e => {
-        e.preventDefault();
-        showSection(el.dataset.section);
-    });
-});
-
-// ── Home ─────────────────────────────────────────────────────
-async function loadHomePlatforms() {
-    const grid = document.getElementById('home-platform-grid');
-    const data = await apiFetch('/api/platforms');
-    if (!data.platforms) return;
-    state.platforms = data.platforms;
-    grid.innerHTML = data.platforms.map(p => {
-        const color = PLATFORM_COLORS[p.id] || '#888';
-        const icon  = PLATFORM_ICONS_CLASS[p.id] || 'fas fa-bell';
-        const kinds = p.kinds || [];
-        return `<div class="platform-card" style="border-top:3px solid ${color};">
-            <div class="platform-card-icon" style="background:${color};"><i class="${icon}"></i></div>
-            <div class="platform-card-name">${p.name}</div>
-            <div class="platform-card-kinds">${kinds.length} 알림 종류</div>
-        </div>`;
-    }).join('');
-}
-
-// ── Settings ─────────────────────────────────────────────────
-function showLoginWall() {
-    document.getElementById('login-wall').style.display = 'flex';
-    document.getElementById('settings-main').style.display = 'none';
-    document.getElementById('demo-banner').style.display = 'none';
-}
-
-async function loadGuilds() {
-    // Fetch user guilds + bot guilds in parallel
-    const [ugRes, bgRes] = await Promise.all([
-        apiFetch('/api/users/@me/guilds'),
-        apiFetch('/api/bot/guilds'),
-    ]);
-    const userGuilds = Array.isArray(ugRes) ? ugRes : (ugRes.guilds || []);
-    const botGuildIds = new Set((bgRes.guild_ids || []));
-    state.botGuilds = botGuildIds;
-
-    // Filter: admin permission guilds where bot is also present
-    state.guilds = userGuilds.filter(g => {
-        const perm = BigInt(g.permissions || 0);
-        const isAdmin = (perm & BigInt(0x8)) === BigInt(0x8);
-        return isAdmin && botGuildIds.has(g.id);
-    });
-
-    // Demo mode: include demo guilds even if no real bot guilds
-    if (state.demo && state.guilds.length === 0) {
-        state.guilds = [{ id: '100000000000000001', name: '데모 서버 1', icon: null }];
-    }
-
-    renderGuildSelect();
-}
-
-function loadDemoGuilds() {
-    state.guilds = [{ id: '100000000000000001', name: '데모 서버 1', icon: null }];
-    renderGuildSelect();
-    // Auto-select first
-    const sel = document.getElementById('server-select');
-    if (sel.options.length > 1) {
-        sel.value = state.guilds[0].id;
-        onServerChange();
+        nameEl.textContent = state.user.global_name || state.user.username || '사용자';
+        if (state.user.avatar) {
+            avatarEl.innerHTML = `<img src="https://cdn.discordapp.com/avatars/${state.user.id}/${state.user.avatar}.png?size=64" alt="avatar">`;
+        } else {
+            avatarEl.textContent = (nameEl.textContent.charAt(0) || 'D').toUpperCase();
+        }
+    } else {
+        nameEl.textContent = '체험 사용자';
+        avatarEl.textContent = 'D';
     }
 }
 
 function renderGuildSelect() {
-    const sel = document.getElementById('server-select');
-    sel.innerHTML = '<option value="">서버 선택...</option>';
-    state.guilds.forEach(g => {
-        const opt = document.createElement('option');
-        opt.value = g.id;
-        opt.textContent = g.name;
-        sel.appendChild(opt);
-    });
+    const sel = $('dash-guild-select');
+    sel.innerHTML = '';
 
-    if (state.guilds.length === 1) {
-        sel.value = state.guilds[0].id;
-        onServerChange();
-    }
-}
-
-async function onServerChange() {
-    const sel = document.getElementById('server-select');
-    const gid = sel.value;
-    if (!gid) { state.selectedGuild = null; state.settings = []; renderNotiList(); return; }
-    state.selectedGuild = gid;
-
-    // Load channels, roles, settings in parallel
-    const [chRes, roleRes, setRes] = await Promise.all([
-        apiFetch(`/api/channels?guild_id=${gid}`),
-        apiFetch(`/api/roles?guild_id=${gid}`),
-        apiFetch(`/api/settings?guild_id=${gid}`),
-    ]);
-    state.channels = chRes.channels || [];
-    state.roles    = roleRes.roles   || [];
-    state.settings = setRes.settings || [];
-
-    if (state.demo && (!state.settings || state.settings.length === 0)) {
-        state.channels = [
-            { id: '1001', name: '방송-알림' },
-            { id: '1002', name: '헤비-소식' },
-            { id: '1003', name: '일반' },
-        ];
-        state.roles = [
-            { id: '9001', name: '헤비 알림' },
-            { id: '9002', name: '방송 알림' },
-        ];
-        state.settings = [
-            {
-                platform: 'cime', slot: 1, channel_id: '1001', channel_name: '방송-알림',
-                role_id: null, custom_message: null, target_url: 'https://ci.me/@demo', enabled: true,
-                kinds: ['live_start', 'live_end', 'live_scheduled'],
-                kinds_labels: ['방송 시작', '방송 종료', '방송 예약'],
-            },
-            {
-                platform: 'youtube', slot: 1, channel_id: '1002', channel_name: '헤비-소식',
-                role_id: null, custom_message: null, target_url: 'https://www.youtube.com/@hebich', enabled: true,
-                kinds: ['post', 'short', 'live_start', 'live_end'],
-                kinds_labels: ['새 영상', '새 쇼츠', '방송 시작', '방송 종료'],
-            },
-            {
-                platform: 'chzzk', slot: 1, channel_id: '1001', channel_name: '방송-알림',
-                role_id: null, custom_message: null, target_url: 'https://chzzk.naver.com/live/demo', enabled: true,
-                kinds: ['live_start', 'live_end', 'live_scheduled'],
-                kinds_labels: ['방송 시작', '방송 종료', '방송 예약'],
-            },
-        ];
-    }
-
-    renderNotiList();
-}
-
-async function refreshSettings() {
-    if (!state.selectedGuild) return;
-    await onServerChange();
-    showToast('새로고침 완료', 'success');
-}
-
-// ── Notification List ─────────────────────────────────────────
-function setFilter(btn, f) {
-    state.filter = f;
-    document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    renderNotiList();
-}
-
-function filterNotis() {
-    state.searchQ = document.getElementById('noti-search').value.toLowerCase();
-    renderNotiList();
-}
-
-function renderNotiList() {
-    const list = document.getElementById('noti-list');
-    let items = [...state.settings];
-
-    // Filter
-    if (state.filter === 'on')   items = items.filter(s => s.enabled);
-    if (state.filter === 'need') items = items.filter(s => !s.channel_id);
-
-    // Search
-    if (state.searchQ) {
-        items = items.filter(s =>
-            (PLATFORM_NAMES[s.platform] || s.platform).toLowerCase().includes(state.searchQ) ||
-            (s.target_url || '').toLowerCase().includes(state.searchQ) ||
-            (s.channel_name || '').toLowerCase().includes(state.searchQ)
-        );
-    }
-
-    document.getElementById('noti-count').textContent = state.settings.length + ' SOURCES';
-
-    if (items.length === 0) {
-        list.innerHTML = `<div class="noti-placeholder"><i class="fas fa-bell-slash"></i><p>${state.settings.length === 0 ? '등록된 알림이 없습니다' : '검색 결과 없음'}</p></div>`;
+    if (!state.guilds || state.guilds.length === 0) {
+        sel.innerHTML = '<option value="">관리 가능한 서버 없음</option>';
         return;
     }
 
-    list.innerHTML = items.map(s => renderNotiRow(s)).join('');
+    state.guilds.forEach(g => {
+        const opt = document.createElement('option');
+        opt.value = g.id;
+        const isConnected = state.botGuilds.has(g.id);
+        opt.textContent = isConnected ? g.name : `${g.name} (봇 초대 필요)`;
+        if (g.id === state.selectedGuild) opt.selected = true;
+        sel.appendChild(opt);
+    });
+
+    checkBotInviteBanner();
 }
 
-function renderNotiRow(s) {
-    const color  = PLATFORM_COLORS[s.platform] || '#888';
-    const icon   = PLATFORM_ICONS_CLASS[s.platform] || 'fas fa-bell';
-    const name   = PLATFORM_NAMES[s.platform] || s.platform;
-    const target = s.target_url ? new URL(s.target_url).pathname.replace('/', '@') : '';
-    const channel = s.channel_name || (s.channel_id ? '#' + s.channel_id : '미설정');
-    const hasChannel = !!s.channel_id;
-    const enabled = s.enabled;
-    const statusText = hasChannel ? '정상 (예시)' : '채널 설정 필요';
-    const statusCls  = hasChannel ? '' : 'warn';
-    const now = new Date().toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
+function checkBotInviteBanner() {
+    const banner = $('banner-bot-invite');
+    const inviteLink = $('link-invite-server');
+    if (!banner || !inviteLink) return;
 
-    return `<div class="noti-row${enabled ? '' : ' disabled'}" data-platform="${s.platform}" data-slot="${s.slot || 1}">
-        <div class="noti-thumb" style="background:${color};">
-            <i class="${icon}" style="color:#fff;font-size:20px;"></i>
-        </div>
-        <div class="noti-info">
-            <div class="noti-name">${name}${s.slot > 1 ? ' #' + s.slot : ''}${target ? ' · <span style="font-weight:400;color:#6b7299;">' + target + '</span>' : ''}</div>
-            <div class="noti-sub">${s.kinds_labels && s.kinds_labels.length ? s.kinds_labels.join(' · ') : '알림 종류 미설정'}</div>
-        </div>
-        <div class="noti-meta">
-            <div class="noti-channel">${channel}</div>
-            <div class="noti-status ${statusCls}">${statusText}</div>
-            <div class="noti-time">체험 데이터 · ${now}</div>
-        </div>
-        <div class="noti-actions">
-            <button class="btn-toggle ${enabled ? 'on' : 'off'}" onclick="toggleEnabled('${s.platform}', ${s.slot || 1})">${enabled ? '켜짐' : '꺼짐'}</button>
-            <button class="btn-settings" onclick="openModal('${s.platform}', ${s.slot || 1})"><i class="fas fa-cog"></i> 설정</button>
-        </div>
-    </div>`;
-}
+    if (state.demo) {
+        banner.style.display = 'none';
+        return;
+    }
 
-async function toggleEnabled(platform, slot) {
-    const idx = state.settings.findIndex(s => s.platform === platform && (s.slot || 1) == slot);
-    if (idx < 0) return;
-    state.settings[idx].enabled = !state.settings[idx].enabled;
-    renderNotiList();
-    if (!state.demo && state.selectedGuild) {
-        await apiFetch('/api/settings', {
-            method: 'POST',
-            body: JSON.stringify({ guild_id: state.selectedGuild, platform, slot, enabled: state.settings[idx].enabled }),
-        });
+    const currentId = state.selectedGuild;
+    if (currentId && !state.botGuilds.has(currentId)) {
+        banner.style.display = 'flex';
+        inviteLink.href = `https://discord.com/oauth2/authorize?client_id=${CLIENT_ID}&permissions=8&scope=bot%20applications.commands&guild_id=${currentId}`;
+    } else {
+        banner.style.display = 'none';
     }
 }
 
-// ── Modal ─────────────────────────────────────────────────────
-async function openModal(platform, slot) {
-    const s = state.settings.find(x => x.platform === platform && (x.slot || 1) == slot);
-    if (!s) return;
-    state.modalSlot = { platform, slot, original: s };
+function renderStats() {
+    const activeSlots = state.settings.filter(s => s.enabled).length;
+    $('stat-active-slots').textContent = activeSlots;
+    $('slots-badge').textContent = `${state.settings.length} / ${MAX_SLOTS} SLOTS`;
 
-    // Fill modal header
-    const color = PLATFORM_COLORS[platform] || '#888';
-    const icon  = PLATFORM_ICONS_CLASS[platform] || 'fas fa-bell';
-    const name  = PLATFORM_NAMES[platform] || platform;
-    document.getElementById('modal-title').textContent = `${name} 설정`;
-    const iconWrap = document.getElementById('modal-icon-wrap');
-    iconWrap.style.cssText = `background:${color};width:28px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;`;
-    iconWrap.innerHTML = `<i class="${icon}" style="color:#fff;"></i>`;
+    const isConnected = state.demo ? true : state.botGuilds.has(state.selectedGuild);
+    const botStatus = $('stat-bot-status');
+    const botNote = $('stat-bot-note');
+    if (isConnected) {
+        botStatus.textContent = '연결됨';
+        botStatus.style.color = '#3b827e';
+        botNote.textContent = '정상 작동 중';
+    } else {
+        botStatus.textContent = '초대 필요';
+        botStatus.style.color = '#c2410c';
+        botNote.textContent = '서버에 봇을 추가하세요';
+    }
 
-    // Target info
-    document.getElementById('modal-target-info').textContent = s.target_url || '대상 URL 없음';
-    document.getElementById('modal-target-info').style.display = s.target_url ? 'block' : 'none';
+    // Delivered & pending counts
+    $('stat-delivered').textContent = state.demo ? '128' : '0';
+    $('stat-pending').textContent = '0';
+}
 
-    // Fill channel select
-    const chSel = document.getElementById('modal-channel');
-    chSel.innerHTML = '<option value="">채널 선택...</option>';
+function renderSourceList() {
+    const container = $('source-list-container');
+    if (!container) return;
+
+    let items = state.settings || [];
+
+    // Filter
+    if (state.filter === 'enabled') {
+        items = items.filter(s => s.enabled);
+    } else if (state.filter === 'disabled') {
+        items = items.filter(s => !s.enabled);
+    }
+
+    // Search query
+    if (state.searchQuery.trim()) {
+        const q = state.searchQuery.toLowerCase();
+        items = items.filter(s => {
+            const pName = (PLATFORMS[s.platform]?.name || '').toLowerCase();
+            const target = (s.target_name || s.target_url || '').toLowerCase();
+            const ch = (s.channel_name || '').toLowerCase();
+            return pName.includes(q) || target.includes(q) || ch.includes(q);
+        });
+    }
+
+    if (items.length === 0) {
+        container.innerHTML = `<div class="empty">
+            조건에 일치하는 알림이 없습니다.<br>
+            검색어나 필터를 변경하거나 새로운 알림을 등록해보세요.
+        </div>`;
+        return;
+    }
+
+    container.innerHTML = items.map(s => {
+        const pMeta = PLATFORMS[s.platform] || { name: s.platform, color: '#666', textColor: '#fff', icon: 'fas fa-bell' };
+        const chName = s.channel_name ? `# ${s.channel_name}` : '채널 미선택';
+        const targetLabel = s.target_name || s.target_url || '대상 미지정';
+        const kindsCount = (s.kinds || []).length;
+
+        return `
+        <article class="source-row">
+            <div class="source-identity">
+                <span class="platform-bubble" style="--color:${pMeta.color};">
+                    <i class="${pMeta.icon}" style="color:${pMeta.textColor};"></i>
+                </span>
+                <div class="source-info">
+                    <strong>${escapeHtml(pMeta.name)}</strong>
+                    <small title="${escapeHtml(targetLabel)}">${escapeHtml(targetLabel)}</small>
+                </div>
+            </div>
+            <div class="source-detail">
+                <span class="source-channel">${escapeHtml(chName)}</span>
+                <span class="source-health">
+                    <i class="fas fa-check" style="font-size:10px;"></i> ${kindsCount}개 이벤트 활성
+                </span>
+                ${s.role_name ? `<small style="color:#7b4eff;">@ ${escapeHtml(s.role_name)} 멘션</small>` : ''}
+            </div>
+            <div class="source-state">
+                <span class="pill ${s.enabled ? '' : 'muted'}">
+                    <i></i>${s.enabled ? '켜짐' : '꺼짐'}
+                </span>
+                <button class="btn-edit-slot" data-slot="${s.slot}" aria-label="설정 변경">
+                    <i class="fas fa-sliders-h"></i> <span>설정</span>
+                </button>
+            </div>
+        </article>
+        `;
+    }).join('');
+
+    // Bind edit buttons
+    container.querySelectorAll('.btn-edit-slot').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const slotNum = parseInt(btn.dataset.slot, 10);
+            openConfigModal(slotNum);
+        });
+    });
+}
+
+function renderHistoryList() {
+    const container = $('history-list-container');
+    if (!container) return;
+
+    if (state.demo) {
+        container.innerHTML = `
+            <div class="history-row">
+                <span>치지직 라이브 시작 알림</span>
+                <span><span class="pill">전송 완료</span></span>
+                <time>방금 전</time>
+            </div>
+            <div class="history-row">
+                <span>SOOP 스트림 감지 알림</span>
+                <span><span class="pill">전송 완료</span></span>
+                <time>15분 전</time>
+            </div>
+            <div class="history-row">
+                <span>YouTube 새 동영상 알림</span>
+                <span><span class="pill muted">전송 완료</span></span>
+                <time>1시간 전</time>
+            </div>
+        `;
+    } else {
+        container.innerHTML = `<div class="empty">새로운 방송 소식이 전송되면 여기에 기록됩니다.</div>`;
+    }
+}
+
+// ── Guild Data Loading ──────────────────────────────────────
+async function loadUserData() {
+    // 1. Fetch user profile from Discord
+    const userRes = await fetch('https://discord.com/api/v10/users/@me', {
+        headers: { 'Authorization': `Bearer ${state.token}` }
+    });
+
+    if (userRes.status === 401) {
+        localStorage.removeItem('damoa_token');
+        state.token = null;
+        switchView('landing');
+        return;
+    }
+
+    if (!userRes.ok) {
+        throw new Error('Discord 사용자 정보를 가져올 수 없습니다.');
+    }
+
+    state.user = await userRes.json();
+    updateUserInfoUI();
+
+    // 2. Fetch user's guilds from Discord
+    const guildsRes = await fetch('https://discord.com/api/v10/users/@me/guilds', {
+        headers: { 'Authorization': `Bearer ${state.token}` }
+    });
+
+    if (!guildsRes.ok) {
+        throw new Error('Discord 서버 목록을 가져올 수 없습니다.');
+    }
+
+    const allGuilds = await guildsRes.json();
+
+    // Filter guilds where user is Owner OR has Administrator (0x8) OR Manage Guild (0x20)
+    state.guilds = allGuilds.filter(g => {
+        if (g.owner) return true;
+        const p = BigInt(g.permissions || 0);
+        return ((p & 0x8n) === 0x8n) || ((p & 0x20n) === 0x20n);
+    });
+
+    // 3. Try to fetch bot's joined guilds from backend
+    try {
+        const bg = await apiFetch('/api/bot/guilds');
+        if (bg && bg.guild_ids) {
+            state.botGuilds = new Set(bg.guild_ids);
+        }
+    } catch {
+        console.warn('Bot guild status unavailable from backend.');
+    }
+
+    // Auto-select first guild
+    if (state.guilds.length > 0) {
+        state.selectedGuild = state.guilds[0].id;
+        await onGuildChange(state.selectedGuild);
+    }
+
+    renderGuildSelect();
+    renderStats();
+    switchView('dashboard');
+    switchTab('overview');
+}
+
+async function onGuildChange(guildId) {
+    state.selectedGuild = guildId;
+    checkBotInviteBanner();
+
+    if (state.demo) return;
+
+    try {
+        // Load channels, roles, settings
+        const [chRes, roleRes, setRes] = await Promise.all([
+            apiFetch(`/api/channels?guild_id=${guildId}`).catch(() => ({ channels: [] })),
+            apiFetch(`/api/roles?guild_id=${guildId}`).catch(() => ({ roles: [] })),
+            apiFetch(`/api/settings?guild_id=${guildId}`).catch(() => ({ settings: [] })),
+        ]);
+
+        state.channels = chRes.channels || [];
+        state.roles = roleRes.roles || [];
+        state.settings = setRes.settings || [];
+    } catch (e) {
+        console.error('Failed to load guild details:', e);
+    }
+
+    renderSourceList();
+    renderStats();
+}
+
+// ── Modal Dialog Operations ─────────────────────────────────
+function openConfigModal(slotNum = null) {
+    state.editingSlot = slotNum;
+    const dialog = $('config-dialog');
+    const titleEl = $('modal-dialog-title');
+    const deleteBtn = $('btn-delete-slot');
+    const errorEl = $('modal-form-error');
+    errorEl.style.display = 'none';
+
+    // Populate channels dropdown
+    const chSel = $('modal-channel');
+    chSel.innerHTML = '<option value="">채널을 선택하세요</option>';
     state.channels.forEach(c => {
         const opt = document.createElement('option');
         opt.value = c.id;
-        opt.textContent = '# ' + c.name;
-        if (c.id == s.channel_id) opt.selected = true;
+        opt.textContent = `# ${c.name}`;
         chSel.appendChild(opt);
     });
 
-    // Fill role select
-    const roleSel = document.getElementById('modal-role');
+    // Populate roles dropdown
+    const roleSel = $('modal-role');
     roleSel.innerHTML = '<option value="">멘션하지 않음</option>';
     state.roles.forEach(r => {
         const opt = document.createElement('option');
         opt.value = r.id;
-        opt.textContent = '@' + r.name;
-        if (r.id == s.role_id) opt.selected = true;
+        opt.textContent = `@ ${r.name}`;
         roleSel.appendChild(opt);
     });
 
-    // Kinds
-    const platformData = state.platforms.find(p => p.id === platform);
-    const kindsField = document.getElementById('modal-kinds-field');
-    const kindsGrid  = document.getElementById('modal-kinds');
-    if (platformData && platformData.kinds && platformData.kinds.length > 0) {
-        kindsField.style.display = 'flex';
-        const selectedKinds = new Set(s.kinds || []);
-        kindsGrid.innerHTML = platformData.kinds.map(k => {
-            const label = (platformData.kind_labels || {})[k] || k;
-            const sel   = selectedKinds.has(k);
-            return `<label class="kind-chip ${sel ? 'selected' : ''}" data-kind="${k}">
-                <input type="checkbox" ${sel ? 'checked' : ''} onchange="toggleKindChip(this)">
-                ${label}
-            </label>`;
-        }).join('');
-    } else {
-        kindsField.style.display = 'none';
-    }
+    if (slotNum !== null) {
+        // Editing existing slot
+        titleEl.textContent = `슬롯 #${slotNum} 알림 설정`;
+        deleteBtn.style.display = 'inline-flex';
 
-    // Enabled
-    document.getElementById('modal-enabled').checked = !!s.enabled;
+        const item = state.settings.find(s => s.slot === slotNum);
+        if (item) {
+            $('modal-platform').value = item.platform || 'chzzk';
+            $('modal-target').value = item.target_url || '';
+            chSel.value = item.channel_id || '';
+            roleSel.value = item.role_id || '';
+            $('modal-custom-msg').value = item.custom_message || '';
+            $('modal-enabled').checked = !!item.enabled;
 
-    // Open
-    document.getElementById('modal-overlay').classList.add('open');
-}
-
-function toggleKindChip(el) {
-    el.closest('.kind-chip').classList.toggle('selected', el.checked);
-}
-
-function closeModal() {
-    document.getElementById('modal-overlay').classList.remove('open');
-    state.modalSlot = null;
-}
-
-async function saveModal() {
-    if (!state.modalSlot) return;
-    const { platform, slot } = state.modalSlot;
-
-    const channelId = document.getElementById('modal-channel').value;
-    const roleId    = document.getElementById('modal-role').value;
-    const enabled   = document.getElementById('modal-enabled').checked;
-    const kinds     = [...document.querySelectorAll('#modal-kinds .kind-chip.selected')].map(el => el.dataset.kind);
-
-    // Update local state
-    const idx = state.settings.findIndex(s => s.platform === platform && (s.slot || 1) == slot);
-    if (idx >= 0) {
-        const ch = state.channels.find(c => c.id == channelId);
-        state.settings[idx] = {
-            ...state.settings[idx],
-            channel_id: channelId || null,
-            channel_name: ch ? ch.name : null,
-            role_id: roleId || null,
-            enabled,
-            kinds,
-            kinds_labels: kinds.map(k => {
-                const p = state.platforms.find(pl => pl.id === platform);
-                return (p && p.kind_labels && p.kind_labels[k]) || k;
-            }),
-        };
-    }
-
-    // Persist if not demo
-    if (!state.demo && state.selectedGuild) {
-        const btn = document.getElementById('modal-save-btn');
-        btn.disabled = true; btn.textContent = '저장 중...';
-        try {
-            const res = await apiFetch('/api/settings', {
-                method: 'POST',
-                body: JSON.stringify({
-                    guild_id: state.selectedGuild,
-                    platform, slot,
-                    channel_id: channelId || null,
-                    role_id: roleId || null,
-                    enabled, kinds,
-                }),
-            });
-            if (res.status !== 'success') throw new Error(res.error || '저장 실패');
-            showToast('설정이 저장되었습니다.', 'success');
-        } catch (e) {
-            showToast(e.message, 'error');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-save"></i> 설정 저장';
+            const kinds = item.kinds || ['live_start'];
+            $('ev-live-start').checked = kinds.includes('live_start');
+            $('ev-live-end').checked = kinds.includes('live_end');
+            $('ev-live-scheduled').checked = kinds.includes('live_scheduled');
         }
     } else {
-        showToast(state.demo ? '체험 모드: 화면에만 반영됩니다' : '설정이 저장되었습니다.', state.demo ? '' : 'success');
+        // Adding new slot
+        titleEl.textContent = '새 알림 등록';
+        deleteBtn.style.display = 'none';
+
+        if (state.settings.length >= MAX_SLOTS) {
+            showToast(`최대 슬롯(${MAX_SLOTS}개)을 모두 사용 중입니다.`);
+            return;
+        }
+
+        $('modal-platform').value = 'chzzk';
+        $('modal-target').value = '';
+        chSel.value = state.channels.length > 0 ? state.channels[0].id : '';
+        roleSel.value = '';
+        $('modal-custom-msg').value = '';
+        $('modal-enabled').checked = true;
+        $('ev-live-start').checked = true;
+        $('ev-live-end').checked = true;
+        $('ev-live-scheduled').checked = true;
     }
 
-    closeModal();
-    renderNotiList();
+    dialog.showModal();
 }
 
-// ── Status Board ─────────────────────────────────────────────
-async function loadStatus() {
-    const [metRes, statRes] = await Promise.all([
-        apiFetch('/api/metrics'),
-        apiFetch('/api/status'),
-    ]);
+async function handleSaveSlot(e) {
+    e.preventDefault();
+    const errorEl = $('modal-form-error');
+    errorEl.style.display = 'none';
 
-    const m = (metRes.metrics || {});
-    document.getElementById('metric-active').textContent    = m.active_notifications ?? '-';
-    document.getElementById('metric-targets').textContent   = m.unique_targets        ?? '-';
-    document.getElementById('metric-servers').textContent   = m.total_servers         ?? '-';
-    document.getElementById('metric-delivered').textContent = m.delivered_total       ?? '-';
+    const platform = $('modal-platform').value;
+    const targetUrl = $('modal-target').value.trim();
+    const channelId = $('modal-channel').value;
+    const roleId = $('modal-role').value || null;
+    const customMessage = $('modal-custom-msg').value.trim() || null;
+    const enabled = $('modal-enabled').checked;
 
-    const grid = document.getElementById('status-grid');
-    const platforms = statRes.platforms || [];
+    const kinds = [];
+    if ($('ev-live-start').checked) kinds.push('live_start');
+    if ($('ev-live-end').checked) kinds.push('live_end');
+    if ($('ev-live-scheduled').checked) kinds.push('live_scheduled');
 
-    if (platforms.length === 0) {
-        grid.innerHTML = '<p style="color:var(--c-text-3);font-size:13px;">데이터를 불러오는 중...</p>';
+    if (!targetUrl) {
+        errorEl.textContent = '추적할 URL 또는 채널 ID를 입력해주세요.';
+        errorEl.style.display = 'block';
+        return;
+    }
+    if (!channelId) {
+        errorEl.textContent = '알림을 전송할 채널을 선택해주세요.';
+        errorEl.style.display = 'block';
+        return;
+    }
+    if (kinds.length === 0) {
+        errorEl.textContent = '적어도 하나 이상의 방송 이벤트를 선택해주세요.';
+        errorEl.style.display = 'block';
         return;
     }
 
-    grid.innerHTML = platforms.map(p => {
-        const icon = PLATFORM_ICONS_CLASS[p.platform] || 'fas fa-bell';
-        return `<div class="status-card">
-            <div class="status-card-header">
-                <div class="status-card-icon" style="background:${p.color};">
-                    <i class="${icon}"></i>
-                </div>
-                <div class="status-card-name">${p.name}</div>
-            </div>
-            <div class="status-stat"><span>참여 서버</span><span class="status-stat-val">${p.total_guilds}</span></div>
-            <div class="status-stat"><span>활성 슬롯</span><span class="status-stat-val">${p.active_slots}</span></div>
-            <div class="status-stat"><span>추적 대상</span><span class="status-stat-val">${p.unique_targets}</span></div>
-        </div>`;
-    }).join('');
+    const chObj = state.channels.find(c => c.id === channelId);
+    const roleObj = state.roles.find(r => r.id === roleId);
+
+    const slotNumber = state.editingSlot !== null 
+        ? state.editingSlot 
+        : getNextAvailableSlot();
+
+    const newSetting = {
+        slot: slotNumber,
+        platform,
+        target_url: targetUrl,
+        target_name: targetUrl.split('/').pop() || platform,
+        channel_id: channelId,
+        channel_name: chObj ? chObj.name : '알림-채널',
+        role_id: roleId,
+        role_name: roleObj ? roleObj.name : null,
+        enabled,
+        kinds,
+        custom_message: customMessage,
+    };
+
+    if (state.demo) {
+        const existingIdx = state.settings.findIndex(s => s.slot === slotNumber);
+        if (existingIdx >= 0) {
+            state.settings[existingIdx] = newSetting;
+        } else {
+            state.settings.push(newSetting);
+        }
+        localStorage.setItem('damoa_demo_settings', JSON.stringify(state.settings));
+        showToast(`슬롯 #${slotNumber} 설정이 저장되었습니다.`);
+        $('config-dialog').close();
+        renderSourceList();
+        renderStats();
+        return;
+    }
+
+    // Call Real Backend API
+    try {
+        await apiFetch(`/api/settings`, {
+            method: 'POST',
+            body: JSON.stringify({
+                guild_id: state.selectedGuild,
+                ...newSetting
+            })
+        });
+        showToast(`슬롯 #${slotNumber} 설정이 Discord 봇에 적용되었습니다!`);
+        $('config-dialog').close();
+        await onGuildChange(state.selectedGuild);
+    } catch (err) {
+        errorEl.textContent = `저장 실패: ${err.message}`;
+        errorEl.style.display = 'block';
+    }
 }
 
-// ── Boot ─────────────────────────────────────────────────────
+async function handleDeleteSlot() {
+    if (state.editingSlot === null) return;
+    const slotNum = state.editingSlot;
+
+    if (!confirm(`슬롯 #${slotNum} 알림을 삭제하시겠습니까?`)) return;
+
+    if (state.demo) {
+        state.settings = state.settings.filter(s => s.slot !== slotNum);
+        localStorage.setItem('damoa_demo_settings', JSON.stringify(state.settings));
+        showToast(`슬롯 #${slotNum} 알림이 삭제되었습니다.`);
+        $('config-dialog').close();
+        renderSourceList();
+        renderStats();
+        return;
+    }
+
+    try {
+        await apiFetch(`/api/settings/${slotNum}?guild_id=${state.selectedGuild}`, {
+            method: 'DELETE'
+        });
+        showToast(`슬롯 #${slotNum} 알림이 삭제되었습니다.`);
+        $('config-dialog').close();
+        await onGuildChange(state.selectedGuild);
+    } catch (err) {
+        showToast(`삭제 실패: ${err.message}`);
+    }
+}
+
+function getNextAvailableSlot() {
+    const used = new Set(state.settings.map(s => s.slot));
+    for (let i = 1; i <= MAX_SLOTS; i++) {
+        if (!used.has(i)) return i;
+    }
+    return state.settings.length + 1;
+}
+
+// ── Event Listeners ─────────────────────────────────────────
+function setupEventListeners() {
+    // Topbar & Hero actions
+    $('btn-hero-login')?.addEventListener('click', loginWithDiscord);
+    $('btn-cta-login')?.addEventListener('click', loginWithDiscord);
+    $('btn-hero-demo')?.addEventListener('click', enterDemo);
+    $('btn-preview-demo')?.addEventListener('click', enterDemo);
+
+    $('btn-top-dashboard')?.addEventListener('click', () => {
+        if (state.token || state.demo) {
+            switchView('dashboard');
+        } else {
+            loginWithDiscord();
+        }
+    });
+
+    $('btn-logout')?.addEventListener('click', logout);
+    $('link-back-home')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchView('landing');
+    });
+    $('link-side-home')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchView('landing');
+    });
+
+    // Motion pause toggle
+    $('motion-toggle')?.addEventListener('click', () => {
+        const isPaused = document.body.classList.toggle('motion-paused');
+        $('motion-toggle').innerHTML = `<i class="fas fa-${isPaused ? 'play' : 'pause'}"></i> ${isPaused ? '애니메이션 재생' : '애니메이션 멈춤'}`;
+    });
+
+    // Reset Demo
+    $('btn-reset-demo')?.addEventListener('click', resetDemo);
+
+    // Sidebar navigation tabs
+    $('nav-tab-overview')?.addEventListener('click', () => switchTab('overview'));
+    $('nav-tab-settings')?.addEventListener('click', () => switchTab('settings'));
+    $('nav-tab-history')?.addEventListener('click', () => switchTab('history'));
+
+    $('m-nav-overview')?.addEventListener('click', () => switchTab('overview'));
+    $('m-nav-settings')?.addEventListener('click', () => switchTab('settings'));
+    $('m-nav-history')?.addEventListener('click', () => switchTab('history'));
+
+    // Server select change
+    $('dash-guild-select')?.addEventListener('change', (e) => {
+        onGuildChange(e.target.value);
+    });
+
+    // Search input
+    $('input-source-search')?.addEventListener('input', (e) => {
+        state.searchQuery = e.target.value;
+        renderSourceList();
+    });
+
+    // Refresh buttons
+    $('btn-refresh-sources')?.addEventListener('click', () => {
+        if (state.selectedGuild) onGuildChange(state.selectedGuild);
+        showToast('최신 알림 상태를 새로고침했습니다.');
+    });
+    $('btn-aside-refresh')?.addEventListener('click', () => {
+        if (state.selectedGuild) onGuildChange(state.selectedGuild);
+        showToast('최신 상태를 동기화했습니다.');
+    });
+
+    // Filter tabs (all / enabled / disabled)
+    document.querySelectorAll('.source-filters button').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.source-filters button').forEach(b => {
+                b.classList.remove('active');
+                b.setAttribute('aria-pressed', 'false');
+            });
+            btn.classList.add('active');
+            btn.setAttribute('aria-pressed', 'true');
+            state.filter = btn.dataset.filter;
+            renderSourceList();
+        });
+    });
+
+    // Slot Add button
+    $('btn-add-slot')?.addEventListener('click', () => openConfigModal(null));
+
+    // Modal dialog controls
+    $('btn-close-dialog')?.addEventListener('click', () => $('config-dialog').close());
+    $('btn-cancel-dialog')?.addEventListener('click', () => $('config-dialog').close());
+    $('config-form')?.addEventListener('submit', handleSaveSlot);
+    $('btn-delete-slot')?.addEventListener('click', handleDeleteSlot);
+}
+
+// ── Application Boot ────────────────────────────────────────
 async function init() {
-    // Check hash for access_token from OAuth redirect
+    setupEventListeners();
+
+    // 1. Check URL Hash for OAuth Access Token
     const hash = new URLSearchParams(window.location.hash.slice(1));
     if (hash.get('access_token')) {
         state.token = hash.get('access_token');
         localStorage.setItem('damoa_token', state.token);
-        history.replaceState(null, '', '/');
+        history.replaceState(null, '', window.location.pathname);
     }
 
-    // Restore saved token
-    if (!state.token) state.token = localStorage.getItem('damoa_token');
+    // 2. Check LocalStorage for saved token
+    if (!state.token) {
+        state.token = localStorage.getItem('damoa_token');
+    }
 
-    // Load platforms (always)
-    apiFetch('/api/platforms').then(r => { if (r.platforms) state.platforms = r.platforms; });
-
-    // Check query params for demo mode
+    // 3. Check Query parameter for demo mode
     const searchParams = new URLSearchParams(window.location.search);
     if (searchParams.get('demo') === '1') {
         enterDemo();
-        showSection('settings');
         return;
     }
 
+    // 4. If token exists, load user profile & guilds
     if (state.token) {
         try {
-            const user = await apiFetch('/api/users/@me');
-            if (user.id) {
-                state.user = user;
-                updateAuthUI();
-                document.getElementById('login-wall').style.display = 'none';
-                document.getElementById('settings-main').style.display = 'block';
-                await loadGuilds();
-            } else {
-                state.token = null;
+            await loadUserData();
+        } catch (err) {
+            console.error('Auth initialization error:', err);
+            // If Discord API returned 401 Unauthorized, token was revoked
+            if (String(err).includes('401')) {
                 localStorage.removeItem('damoa_token');
-                showLoginWall();
+                state.token = null;
+                switchView('landing');
+            } else {
+                // Otherwise temporary network error, don't erase token immediately
+                showToast(`Discord 연결 알림: ${err.message}`);
+                switchView('landing');
             }
-        } catch {
-            state.token = null;
-            showLoginWall();
         }
     } else {
-        showLoginWall();
+        switchView('landing');
     }
-
-    // Show default section
-    showSection('settings');
 }
 
 window.addEventListener('DOMContentLoaded', init);

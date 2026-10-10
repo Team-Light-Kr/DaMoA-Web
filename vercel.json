@@ -3,11 +3,14 @@
   "trailingSlash": false,
   "rewrites": [
     { "source": "/pp", "destination": "/pp.html" },
-    { "source": "/tos", "destination": "/tos.html" },
     { "source": "/privacy", "destination": "/pp.html" },
+    { "source": "/tos", "destination": "/tos.html" },
     { "source": "/terms", "destination": "/tos.html" },
     { "source": "/auth/callback", "destination": "/auth/callback.html" },
     { "source": "/auth/(.*)", "destination": "/auth/callback.html" },
+    { "source": "/dashboard", "destination": "/index.html" },
+    { "source": "/guide", "destination": "/index.html" },
+    { "source": "/login", "destination": "/index.html" },
     { "source": "/api/auth_code", "destination": "/api/auth_code.py" },
     { "source": "/api/(.*)", "destination": "/api/index.py" }
   ]
