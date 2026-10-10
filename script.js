@@ -344,7 +344,6 @@ function renderStats() {
     }
 
     $('stat-delivered').textContent = state.demo ? '128' : '0';
-    $('stat-pending').textContent = '0';
 }
 
 function renderSourceList() {

@@ -520,7 +520,6 @@ def get_metrics():
                 'active_notifications': total_settings,
                 'unique_targets': total_targets,
                 'total_servers': total_guilds,
-                'pending_deliveries': 0,
                 'delivered_total': total_settings,
             }
         })
@@ -529,7 +528,6 @@ def get_metrics():
             'active_notifications': 0,
             'unique_targets': 0,
             'total_servers': 0,
-            'pending_deliveries': 0,
             'delivered_total': 0,
         }})
 
