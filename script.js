@@ -632,6 +632,8 @@ async function onGuildChange(guildId) {
                 const guildObj = state.guilds.find(g => g.id === guildId);
                 if (opt && guildObj) opt.textContent = guildObj.name;
             }
+        }
+
         const guildObj = state.guilds.find(g => String(g.id) === String(guildId));
         if (guildObj) {
             const crumb = $('crumb-title');
