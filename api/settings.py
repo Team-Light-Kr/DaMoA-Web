@@ -1,19 +1,98 @@
 import os
-import sys
-from flask import request
+import json
+from flask import Flask, jsonify, request
+from flask_cors import CORS
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
-sys.path.insert(0, os.path.dirname(__file__))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+app = Flask(__name__)
+CORS(app, origins='*')
 
-try:
-    from api.index import app, get_settings, update_settings
-except ImportError:
-    from index import app, get_settings, update_settings
+NEON_DB_URL = os.getenv('NEON_DB_URL') or os.getenv('DATABASE_URL') or 'postgresql://neondb_owner:npg_qoNf2Brm7KwE@ep-summer-bonus-b5euqtai-pooler.c-7.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require'
 
-@app.route('/settings', methods=['GET', 'POST'])
+PLATFORM_KIND_LABELS = {
+    'post': '새 게시물', 'short': '새 쇼츠', 'community_post': '커뮤니티 글',
+    'live_start': '방송 시작', 'live_end': '방송 종료', 'live_scheduled': '방송 예약',
+    'feed_post': '피드 포스트', 'story': '스토리', 'playlist': '플레이리스트', 'notice': '공지'
+}
+
 @app.route('/', defaults={'path': ''}, methods=['GET', 'POST'])
 @app.route('/<path:path>', methods=['GET', 'POST'])
-def handler(path=''):
+def handle_settings(path=''):
     if request.method == 'POST':
-        return update_settings()
-    return get_settings()
+        data = request.get_json(silent=True) or {}
+        guild_id = data.get('guild_id')
+        platform = data.get('platform')
+        slot = int(data.get('slot', 1))
+        if not guild_id or not platform:
+            return jsonify({'error': 'guild_id and platform required'}), 400
+        
+        channel = data.get('channel_id') or data.get('channel')
+        role = data.get('role_id')
+        custom_message = data.get('custom_message')
+        kinds = data.get('kinds')
+        enabled = data.get('enabled')
+
+        updates, params = [], []
+        if channel is not None:
+            updates.append('channel = %s')
+            params.append(int(channel))
+        if role is not None:
+            updates.append('role_id = %s')
+            params.append(int(role) if role else None)
+        if custom_message is not None:
+            updates.append('message = %s')
+            params.append(custom_message or None)
+        if kinds is not None:
+            updates.append('kinds = %s')
+            params.append(json.dumps(kinds))
+        if enabled is not None:
+            updates.append('enabled = %s')
+            params.append(int(enabled))
+
+        if not updates:
+            return jsonify({'status': 'success', 'message': 'No changes'})
+
+        try:
+            conn = psycopg2.connect(NEON_DB_URL)
+            conn.autocommit = True
+            cur = conn.cursor()
+            cur.execute(f"UPDATE settings SET {', '.join(updates)} WHERE guild = %s AND source = %s AND slot = %s",
+                        params + [int(guild_id), platform, slot])
+            conn.close()
+            return jsonify({'status': 'success', 'message': 'Settings updated'})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    # GET
+    guild_id = request.args.get('guild_id')
+    if not guild_id:
+        return jsonify({'status': 'success', 'settings': []})
+    try:
+        conn = psycopg2.connect(NEON_DB_URL)
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(
+            'SELECT source AS platform, slot, channel AS channel_id, role_id, '
+            'message AS custom_message, target_url, enabled, kinds '
+            'FROM settings WHERE guild = %s ORDER BY source, slot',
+            (int(guild_id),)
+        )
+        rows = cur.fetchall()
+        conn.close()
+        result = []
+        for row in rows:
+            d = dict(row)
+            kinds_raw = d.get('kinds') or '[]'
+            try:
+                kinds = json.loads(kinds_raw) if isinstance(kinds_raw, str) else kinds_raw
+            except Exception:
+                kinds = []
+            d['kinds'] = kinds
+            d['kinds_labels'] = [PLATFORM_KIND_LABELS.get(k, k) for k in kinds]
+            d['enabled'] = bool(d.get('enabled', 0))
+            result.append(d)
+        resp = jsonify({'status': 'success', 'settings': result})
+        resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        return resp
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
