@@ -35,16 +35,7 @@ PLATFORM_META = {
     'naver_cafe': {'name': '네이버 카페', 'color': '#03C75A'},
 }
 
-# 플랫폼별 푸터 아이콘 URL (네이버 카페 로고는 요청에 따라 제외됨)
-PLATFORM_ICON_URLS = {
-    'youtube':    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT35KBL5ifTR1qh-c7-UZJc5bGYTI2kXnyaGDGnZmeuiA&s=10',
-    'chzzk':      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTL5o8WMTcizruTWGFYaAhK61h-fAJWIeRGGI5g8NC9dA&s=10',
-    'twitter':    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFbqet-sK8lwsz1nprOmg_E1x993Wvuliu2MmbCwVcOw&s=10',
-    'cime':       'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRwoAs9YU5vS94EgfUPeMLdzq7EQLy7SlpRNK0i_6J8Bg&s=10',
-    'instagram':  'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR1mEo2-NnFTlPRLM13eEJf-qv66rqJUPRu-bAneh4Ncg&s=10',
-    'spotify':    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRgoYNyRiH1MSuh1ZL_KreEfYiturY4NYE4RCGB4WhaWw&s=10',
-    'soop':       'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTTET5t-HJitRYOD1ESgF4E8MwfCTcwztdUaGdP6a7Wdg&s=10',
-}
+
 
 def create_or_get_webhook(channel_id):
     if not channel_id or not DISCORD_BOT_TOKEN:
@@ -197,22 +188,10 @@ def handle_test_notify(path=''):
         {'type': 14, 'divider': True, 'spacing': 1}
     ]
 
-    # 네이버 카페는 요청에 따라 로고 이미지 제외
-    platform_icon = PLATFORM_ICON_URLS.get(platform)
-    if platform != 'naver_cafe' and platform_icon:
-        inner.append({
-            'type': 9,
-            'components': [{'type': 10, 'content': f"-# {platform_name} | {time_str}"}],
-            'accessory': {
-                'type': 11,
-                'media': {'url': platform_icon}
-            }
-        })
-    else:
-        inner.append({
-            'type': 10,
-            'content': f"-# {platform_name} | {time_str}"
-        })
+    inner.append({
+        'type': 10,
+        'content': f"-# {platform_name} | {time_str}"
+    })
 
     payload = {
         'flags': 32768,
