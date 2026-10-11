@@ -565,7 +565,10 @@ async function loadUserData() {
 
     // 3. Try to fetch bot's joined guilds from backend
     try {
-        const bg = await apiFetch('/api/bot/guilds');
+        let bg = await apiFetch('/api/bot/guilds').catch(() => null);
+        if (!bg || !bg.guild_ids) {
+            bg = await apiFetch('/api/bot_guilds').catch(() => null);
+        }
         if (bg && bg.guild_ids) {
             state.botGuilds = new Set(bg.guild_ids);
         }
@@ -599,7 +602,9 @@ async function onGuildChange(guildId) {
             apiFetch(`/api/channels?guild_id=${guildId}`).catch(() => ({ channels: [] })),
             apiFetch(`/api/roles?guild_id=${guildId}`).catch(() => ({ roles: [] })),
             apiFetch(`/api/settings?guild_id=${guildId}`).catch(() => ({ settings: [] })),
-            apiFetch(`/api/bot/check_guild?guild_id=${guildId}`).catch(() => ({ present: false })),
+            apiFetch(`/api/bot/check_guild?guild_id=${guildId}`).catch(() => 
+                apiFetch(`/api/bot_check_guild?guild_id=${guildId}`).catch(() => ({ present: false }))
+            ),
         ]);
         if (botCheck && botCheck.present) {
             state.botGuilds.add(guildId);
@@ -987,7 +992,10 @@ function setupEventListeners() {
     // Refresh guild buttons
     const handleRefresh = async () => {
         try {
-            const bg = await apiFetch('/api/bot/guilds');
+            let bg = await apiFetch('/api/bot/guilds').catch(() => null);
+            if (!bg || !bg.guild_ids) {
+                bg = await apiFetch('/api/bot_guilds').catch(() => null);
+            }
             if (bg && bg.guild_ids) {
                 bg.guild_ids.forEach(id => state.botGuilds.add(id));
             }

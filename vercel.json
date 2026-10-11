@@ -51,6 +51,22 @@
       "destination": "/api/auth_code.py"
     },
     {
+      "source": "/api/bot/guilds",
+      "destination": "/api/bot/guilds.py"
+    },
+    {
+      "source": "/api/bot/check_guild",
+      "destination": "/api/bot/check_guild.py"
+    },
+    {
+      "source": "/api/bot_guilds",
+      "destination": "/api/bot_guilds.py"
+    },
+    {
+      "source": "/api/bot_check_guild",
+      "destination": "/api/bot_check_guild.py"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/index.py"
     }
