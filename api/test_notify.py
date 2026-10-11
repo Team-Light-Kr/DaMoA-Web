@@ -32,7 +32,6 @@ PLATFORM_META = {
     'instagram':  {'name': 'Instagram',   'color': '#E1306C'},
     'spotify':    {'name': 'Spotify',     'color': '#1DB954'},
     'naver_cafe': {'name': '네이버 카페', 'color': '#03C75A'},
-    'fanding':    {'name': '팬딩',        'color': '#FF5252'},
 }
 
 @app.route('/', defaults={'path': ''}, methods=['GET', 'POST'])
