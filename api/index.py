@@ -88,7 +88,8 @@ def get_db_connection():
 
 
 def discord_headers(token=None, is_bot=False):
-    h = {'User-Agent': DISCORD_USER_AGENT}
+    ua = 'DaMoABot/1.0.0 (https://damoa.teamlight.pe.kr)' if is_bot else DISCORD_USER_AGENT
+    h = {'User-Agent': ua}
     if token:
         prefix = 'Bot ' if is_bot else 'Bearer '
         h['Authorization'] = prefix + token

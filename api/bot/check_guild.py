@@ -22,7 +22,7 @@ def check_bot_guild(path=''):
     try:
         res = requests.get(
             f'{DISCORD_API_BASE}/guilds/{guild_id}',
-            headers={'Authorization': f'Bot {DISCORD_BOT_TOKEN}', 'User-Agent': 'Mozilla/5.0'},
+            headers={'Authorization': f'Bot {DISCORD_BOT_TOKEN}', 'User-Agent': 'DaMoABot/1.0.0 (https://damoa.teamlight.pe.kr)'},
             timeout=5
         )
         if res.status_code == 200:

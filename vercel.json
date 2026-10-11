@@ -67,6 +67,34 @@
       "destination": "/api/bot_check_guild.py"
     },
     {
+      "source": "/api/channels",
+      "destination": "/api/channels.py"
+    },
+    {
+      "source": "/api/roles",
+      "destination": "/api/roles.py"
+    },
+    {
+      "source": "/api/settings",
+      "destination": "/api/settings.py"
+    },
+    {
+      "source": "/api/test_notify",
+      "destination": "/api/test_notify.py"
+    },
+    {
+      "source": "/api/platforms",
+      "destination": "/api/platforms.py"
+    },
+    {
+      "source": "/api/status",
+      "destination": "/api/status.py"
+    },
+    {
+      "source": "/api/metrics",
+      "destination": "/api/metrics.py"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/index.py"
     }

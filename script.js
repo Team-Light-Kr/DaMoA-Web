@@ -313,8 +313,8 @@ function renderGuildSelect() {
         if (!state.guilds || state.guilds.length === 0) {
             grid.innerHTML = '<div class="guild-empty">관리자 권한이 있는 Discord 서버가 없습니다.</div>';
         } else {
-            const botHas = state.guilds.filter(g => state.botGuilds.has(g.id));
-            const noBot = state.guilds.filter(g => !state.botGuilds.has(g.id));
+            const botHas = state.guilds.filter(g => state.botGuilds.has(String(g.id)));
+            const noBot = state.guilds.filter(g => !state.botGuilds.has(String(g.id)));
 
             let html = '';
             if (botHas.length > 0) {
@@ -391,7 +391,7 @@ function checkBotInviteBanner() {
     }
 
     const currentId = state.selectedGuild;
-    if (currentId && !state.botGuilds.has(currentId)) {
+    if (currentId && !state.botGuilds.has(String(currentId))) {
         banner.style.display = 'flex';
         inviteLink.href = `https://discord.com/oauth2/authorize?client_id=${CLIENT_ID}&permissions=8&scope=bot%20applications.commands&guild_id=${currentId}`;
     } else {
@@ -404,7 +404,7 @@ function renderStats() {
     $('stat-active-slots').textContent = activeSlots;
     $('slots-badge').textContent = `${state.settings.length} / ${MAX_SLOTS} SLOTS`;
 
-    const isConnected = state.demo ? true : state.botGuilds.has(state.selectedGuild);
+    const isConnected = state.demo ? true : state.botGuilds.has(String(state.selectedGuild));
     const botStatus = $('stat-bot-status');
     const botNote = $('stat-bot-note');
     if (isConnected) {
@@ -570,7 +570,7 @@ async function loadUserData() {
             bg = await apiFetch('/api/bot_guilds').catch(() => null);
         }
         if (bg && bg.guild_ids) {
-            state.botGuilds = new Set(bg.guild_ids);
+            state.botGuilds = new Set(bg.guild_ids.map(String));
         }
     } catch {
         console.warn('Bot guild status unavailable from backend.');
@@ -578,7 +578,7 @@ async function loadUserData() {
 
     // Auto-select first guild with bot, or fallback to first guild
     if (state.guilds.length > 0) {
-        const preferred = state.guilds.find(g => state.botGuilds.has(g.id)) || state.guilds[0];
+        const preferred = state.guilds.find(g => state.botGuilds.has(String(g.id))) || state.guilds[0];
         state.selectedGuild = preferred.id;
         renderGuildSelect();
         await onGuildChange(state.selectedGuild);
@@ -992,12 +992,24 @@ function setupEventListeners() {
     // Refresh guild buttons
     const handleRefresh = async () => {
         try {
+            if (state.token) {
+                const guildsRes = await fetch('https://discord.com/api/v10/users/@me/guilds', {
+                    headers: { Authorization: `Bearer ${state.token}` }
+                }).catch(() => null);
+                if (guildsRes && guildsRes.ok) {
+                    const allGuilds = await guildsRes.json();
+                    state.guilds = allGuilds.filter(g => {
+                        const p = BigInt(g.permissions || '0');
+                        return g.owner || (p & 0x8n) === 0x8n || (p & 0x20n) === 0x20n;
+                    });
+                }
+            }
             let bg = await apiFetch('/api/bot/guilds').catch(() => null);
             if (!bg || !bg.guild_ids) {
                 bg = await apiFetch('/api/bot_guilds').catch(() => null);
             }
             if (bg && bg.guild_ids) {
-                bg.guild_ids.forEach(id => state.botGuilds.add(id));
+                bg.guild_ids.forEach(id => state.botGuilds.add(String(id)));
             }
         } catch {}
         if (state.selectedGuild) {
