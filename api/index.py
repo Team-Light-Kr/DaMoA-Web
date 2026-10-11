@@ -722,18 +722,21 @@ def test_notify():
     platform_name = PLATFORM_META[platform]["name"]
     platform_color = int(PLATFORM_META[platform]["color"].lstrip("#"), 16)
     from datetime import datetime, timezone, timedelta
+    import time
+    now_ts = int(time.time())
     now_kst = datetime.now(timezone(timedelta(hours=9)))
     time_str = now_kst.strftime("%Y.%m.%d %H:%M:%S")
     payload = {
         "flags": 1 << 15,
+        "username": f"{platform_name} 테스트",
         "components": [{"type": 17, "accent_color": platform_color, "components": [
-            {"type": 10, "content": "**DaMoA 테스트**\n-# " + time_str + " · " + platform_name},
+            {"type": 10, "content": f"DaMoA 테스트 @DaMoA\n-# <t:{now_ts}:f> · {platform_name}"},
             {"type": 14, "divider": True, "spacing": 1},
-            {"type": 10, "content": "🔔 **" + platform_name + " 테스트 알림**\n\n이 메시지는 DaMoA 테스트 알림입니다."},
+            {"type": 10, "content": f"**새 게시물**\n\n🔔 **{platform_name} 테스트 알림**\n\n이 메시지는 DaMoA 테스트 알림입니다.\n실제 알림이 예시처럼 디스코드에 전송됩니다."},
             {"type": 14, "divider": False, "spacing": 1},
             {"type": 1, "components": [{"type": 2, "style": 5, "label": "원문 보기", "url": "https://damoa.teamlight.pe.kr"}]},
             {"type": 14, "divider": True, "spacing": 1},
-            {"type": 10, "content": "-# " + platform_name + " | " + time_str},
+            {"type": 10, "content": f"-# {platform_name} | {time_str}"},
         ]}]
     }
     sent_count = 0
