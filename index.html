@@ -342,6 +342,9 @@
                         <a href="/guide" id="link-side-guide">
                             <i class="fas fa-book-open"></i> 가이드
                         </a>
+                        <a href="/invite" target="_blank" rel="noopener">
+                            <i class="fas fa-robot"></i> 봇 초대하기 ↗
+                        </a>
                         <a href="https://discord.gg/ZnWmyyXF5s" target="_blank" rel="noopener">
                             <i class="fab fa-discord"></i> 공식 지원 서버 ↗
                         </a>
@@ -395,19 +398,33 @@
                             </a>
                         </div>
 
-                        <!-- Dashboard Heading & Server Select -->
-                        <div class="dash-heading">
+                        <!-- Server Selector matching todo1.png -->
+                        <div class="server-selector-area">
+                            <div class="server-picker-hero">
+                                <div class="server-picker-text">
+                                    <div class="server-greeting">! <span id="server-picker-user">사용자</span>님, 반가워요.</div>
+                                    <h2 class="server-main-title">어느 서버를 볼까요?</h2>
+                                    <p class="server-sub-title">관리할 서버를 고르세요. 봇이 없는 서버에는 바로 초대할 수 있어요.</p>
+                                </div>
+                                <button class="btn-refresh-server-list" id="btn-refresh-guilds" type="button" aria-label="서버 목록 새로고침">
+                                    <i class="fas fa-sync-alt"></i> 서버 목록 새로고침
+                                </button>
+                            </div>
+                            <!-- Legacy hidden select for compatibility -->
+                            <select class="guild-select" id="dash-guild-select" aria-label="관리할 서버" style="display:none;">
+                                <option value="">서버 불러오는 중...</option>
+                            </select>
+                            <!-- Card-style guild picker matching todo1.png -->
+                            <div class="guild-card-grid" id="guild-card-grid"></div>
+                        </div>
+
+                        <!-- Dashboard Heading & Stats -->
+                        <div class="dash-heading" style="margin-top:32px;">
                             <div>
                                 <div class="eyebrow" style="margin-bottom:8px;">MY NOTIFICATION SPACE</div>
                                 <h1 id="dash-section-title">알림을 한눈에</h1>
                                 <p id="dash-section-desc">치지직, SOOP, YouTube 등의 새로운 소식을 전하는 연결들을 살펴보세요.</p>
                             </div>
-                            <label>
-                                <span class="server-label">관리 중인 서버</span>
-                                <select class="guild-select" id="dash-guild-select" aria-label="관리할 서버">
-                                    <option value="">서버 불러오는 중...</option>
-                                </select>
-                            </label>
                         </div>
 
                         <!-- 3 Stat Summary Cards -->
@@ -458,7 +475,6 @@
                                 </div>
                             </section>
 
-                            <!-- Right: Aside Information Panel -->
                             <aside class="panel aside-panel">
                                 <h2>작은 소식도 놓치지 않도록</h2>
                                 <p>알림별 상태를 확인하고 우리 서버에 맞게 설정해보세요.</p>
@@ -473,10 +489,14 @@
 
                                 <div class="side-links">
                                     <a href="/guide" id="link-aside-guide">처음 사용하는 분을 위한 가이드 <span>↗</span></a>
+                                    <a href="/invite" target="_blank" rel="noopener">봇 초대하기 <span>↗</span></a>
                                     <a href="/tos">이용약관 및 제약 사항 <span>↗</span></a>
                                     <a href="https://discord.gg/ZnWmyyXF5s" target="_blank" rel="noopener">공식 지원 디스코드 서버 <span>↗</span></a>
                                     <button class="btn small" id="btn-aside-refresh">
                                         <i class="fas fa-sync-alt"></i> 상태 새로고침
+                                    </button>
+                                    <button class="btn small" id="btn-test-notify" style="background:rgba(123,78,255,0.15);color:#7b4eff;border-color:#7b4eff;">
+                                        <i class="fas fa-paper-plane"></i> 테스트 알림 전송
                                     </button>
                                 </div>
 
@@ -565,10 +585,10 @@
                         <small>알림 전송 시 호출할 서버 역할을 지정합니다.</small>
                     </label>
 
-                    <!-- Event kinds checkboxes -->
+                    <!-- Event kinds checkboxes (동적으로 플랫폼에 따라 변경됨) -->
                     <div class="field">
                         전송받을 이벤트 선택
-                        <div class="events-box">
+                        <div class="events-box" id="events-box">
                             <label><input type="checkbox" id="ev-live-start" value="live_start" checked> 라이브 시작 (Live Start)</label>
                             <label><input type="checkbox" id="ev-live-end" value="live_end" checked> 방송 종료 (Live End)</label>
                             <label><input type="checkbox" id="ev-live-scheduled" value="live_scheduled" checked> 방송 예약 (Scheduled)</label>
@@ -599,6 +619,39 @@
                     </div>
                 </div>
             </form>
+        </dialog>
+
+        <!-- Test Notify Modal -->
+        <dialog class="dialog" id="test-notify-dialog">
+            <div class="dialog-head">
+                <h2>테스트 알림 전송</h2>
+                <button type="button" class="icon-btn" id="btn-close-test-dialog" aria-label="닫기">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="dialog-body">
+                <p style="margin-bottom:16px;color:#939ab1;">선택한 플랫폼의 테스트 알림을 현재 서버에 등록된 채널로 전송합니다.</p>
+                <label class="field">
+                    테스트할 플랫폼
+                    <select id="test-platform">
+                        <option value="chzzk">치지직 (CHZZK)</option>
+                        <option value="soop">SOOP</option>
+                        <option value="youtube">YouTube</option>
+                        <option value="cime">씨미 (ci.me)</option>
+                        <option value="twitter">X (Twitter)</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="spotify">Spotify</option>
+                        <option value="naver_cafe">네이버 카페</option>
+                    </select>
+                </label>
+                <p class="form-error" id="test-notify-error" style="display:none;"></p>
+                <div class="dialog-actions">
+                    <button type="button" class="btn" id="btn-cancel-test-dialog">취소</button>
+                    <button type="button" class="btn primary" id="btn-send-test-notify">
+                        <i class="fas fa-paper-plane"></i> 테스트 알림 전송
+                    </button>
+                </div>
+            </div>
         </dialog>
 
         <!-- Toast element -->

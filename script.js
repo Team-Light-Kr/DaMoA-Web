@@ -271,9 +271,12 @@ function resetDemo() {
 function updateUserInfoUI() {
     const avatarEl = $('dash-user-avatar');
     const nameEl = $('dash-user-name');
+    const pickerUserEl = $('server-picker-user');
 
     if (state.user) {
-        nameEl.textContent = state.user.global_name || state.user.username || '사용자';
+        const uName = state.user.global_name || state.user.username || '사용자';
+        nameEl.textContent = uName;
+        if (pickerUserEl) pickerUserEl.textContent = uName;
         if (state.user.avatar) {
             avatarEl.innerHTML = `<img src="https://cdn.discordapp.com/avatars/${state.user.id}/${state.user.avatar}.png?size=64" alt="avatar">`;
         } else {
@@ -287,25 +290,95 @@ function updateUserInfoUI() {
 
 function renderGuildSelect() {
     const sel = $('dash-guild-select');
-    sel.innerHTML = '';
-
-    if (!state.guilds || state.guilds.length === 0) {
-        sel.innerHTML = '<option value="">관리 가능한 서버 없음</option>';
-        return;
+    const grid = $('guild-card-grid');
+    if (sel) {
+        sel.innerHTML = '';
+        if (!state.guilds || state.guilds.length === 0) {
+            sel.innerHTML = '<option value="">관리 가능한 서버 없음</option>';
+        } else {
+            state.guilds.forEach(g => {
+                const opt = document.createElement('option');
+                opt.value = g.id;
+                const isConnected = state.botGuilds.has(g.id);
+                opt.textContent = isConnected ? g.name : `${g.name} (봇 초대 필요)`;
+                if (g.id === state.selectedGuild) opt.selected = true;
+                sel.appendChild(opt);
+            });
+        }
     }
 
-    state.guilds.forEach(g => {
-        const opt = document.createElement('option');
-        opt.value = g.id;
-        const isConnected = state.botGuilds.has(g.id);
-        opt.textContent = isConnected ? g.name : `${g.name} (봇 초대 필요)`;
-        if (g.id === state.selectedGuild) opt.selected = true;
-        sel.appendChild(opt);
-    });
+    // Card grid matching todo1.png perfectly
+    if (grid) {
+        if (!state.guilds || state.guilds.length === 0) {
+            grid.innerHTML = '<div class="guild-empty">관리자 권한이 있는 Discord 서버가 없습니다.</div>';
+        } else {
+            const botHas = state.guilds.filter(g => state.botGuilds.has(g.id));
+            const noBot = state.guilds.filter(g => !state.botGuilds.has(g.id));
+
+            let html = '';
+            if (botHas.length > 0) {
+                html += `<div class="guild-section-label">DaMoA가 있는 서버 ${botHas.length}</div>`;
+                html += '<div class="server-large-grid">';
+                botHas.forEach(g => {
+                    const isSelected = g.id === state.selectedGuild;
+                    const icon = g.icon ? `https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png?size=128` : null;
+                    const initials = g.name.replace(/[^\p{L}\p{N}]/gu, '').substring(0, 2).toUpperCase() || 'S';
+                    html += `
+                    <div class="server-large-card ${isSelected ? 'selected' : ''}" data-guild-id="${g.id}" role="button" tabindex="0">
+                        <div class="server-card-top">
+                            <div class="server-icon-large">
+                                ${icon ? `<img src="${icon}" alt="${escapeHtml(g.name)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : ''}
+                                <span class="server-icon-initials" style="${icon ? 'display:none' : ''}">${escapeHtml(initials)}</span>
+                            </div>
+                            <span class="server-role-badge">관리자</span>
+                        </div>
+                        <div class="server-card-name" title="${escapeHtml(g.name)}">${escapeHtml(g.name)}</div>
+                        <div class="server-card-meta">알림 설정 · 슬롯 관리</div>
+                        <div class="server-card-action">열기 →</div>
+                    </div>`;
+                });
+                html += '</div>';
+            }
+
+            if (noBot.length > 0) {
+                html += `<div class="guild-section-label">초대할 수 있는 서버 ${noBot.length}</div>`;
+                html += '<div class="server-compact-grid">';
+                noBot.forEach(g => {
+                    const icon = g.icon ? `https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png?size=64` : null;
+                    const initials = g.name.replace(/[^\p{L}\p{N}]/gu, '').substring(0, 2).toUpperCase() || 'S';
+                    const inviteUrl = `https://damoa.teamlight.pe.kr/invite?guild_id=${g.id}`;
+                    html += `
+                    <div class="server-compact-card">
+                        <div class="server-compact-left">
+                            <div class="server-icon-compact">
+                                ${icon ? `<img src="${icon}" alt="${escapeHtml(g.name)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : ''}
+                                <span class="server-icon-initials" style="${icon ? 'display:none' : ''}">${escapeHtml(initials)}</span>
+                            </div>
+                            <span class="server-compact-name" title="${escapeHtml(g.name)}">${escapeHtml(g.name)}</span>
+                        </div>
+                        <a class="server-invite-btn" href="${inviteUrl}" target="_blank" rel="noopener">+ 초대</a>
+                    </div>`;
+                });
+                html += '</div>';
+            }
+            grid.innerHTML = html;
+
+            // Bind large card click
+            grid.querySelectorAll('.server-large-card[data-guild-id]').forEach(card => {
+                const handler = () => {
+                    const gid = card.dataset.guildId;
+                    if (gid !== state.selectedGuild) {
+                        onGuildChange(gid);
+                    }
+                };
+                card.addEventListener('click', handler);
+                card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') handler(); });
+            });
+        }
+    }
 
     checkBotInviteBanner();
 }
-
 function checkBotInviteBanner() {
     const banner = $('banner-bot-invite');
     const inviteLink = $('link-invite-server');
@@ -519,12 +592,16 @@ async function onGuildChange(guildId) {
     if (state.demo) return;
 
     try {
-        // Load channels, roles, settings
-        const [chRes, roleRes, setRes] = await Promise.all([
+        // Load channels, roles, settings and live bot check in parallel
+        const [chRes, roleRes, setRes, botCheck] = await Promise.all([
             apiFetch(`/api/channels?guild_id=${guildId}`).catch(() => ({ channels: [] })),
             apiFetch(`/api/roles?guild_id=${guildId}`).catch(() => ({ roles: [] })),
             apiFetch(`/api/settings?guild_id=${guildId}`).catch(() => ({ settings: [] })),
+            apiFetch(`/api/bot/check_guild?guild_id=${guildId}`).catch(() => ({ present: false })),
         ]);
+        if (botCheck && botCheck.present) {
+            state.botGuilds.add(guildId);
+        }
 
         state.channels = chRes.channels || [];
         state.roles = roleRes.roles || [];
@@ -547,11 +624,114 @@ async function onGuildChange(guildId) {
     }
 
     checkBotInviteBanner();
+    renderGuildSelect();
     renderSourceList();
     renderStats();
 }
 
 // ── Modal Dialog Operations ─────────────────────────────────
+
+// ── Platform-specific Event Kinds & URL Hints ────────────────
+const PLATFORM_EVENT_KINDS = {
+    youtube: [
+        { id: 'ev-post', value: 'post', label: '새 영상 (Upload)' },
+        { id: 'ev-short', value: 'short', label: '쇼츠 (Short)' },
+        { id: 'ev-community', value: 'community_post', label: '커뮤니티 글' },
+        { id: 'ev-live-start', value: 'live_start', label: '라이브 시작' },
+        { id: 'ev-live-end', value: 'live_end', label: '방송 종료' },
+        { id: 'ev-live-scheduled', value: 'live_scheduled', label: '방송 예약' },
+        { id: 'ev-premiere', value: 'premiere', label: '프리미어' },
+    ],
+    chzzk: [
+        { id: 'ev-live-start', value: 'live_start', label: '라이브 시작' },
+        { id: 'ev-live-end', value: 'live_end', label: '방송 종료' },
+        { id: 'ev-live-scheduled', value: 'live_scheduled', label: '방송 예약' },
+    ],
+    soop: [
+        { id: 'ev-live-start', value: 'live_start', label: '라이브 시작' },
+        { id: 'ev-live-end', value: 'live_end', label: '방송 종료' },
+        { id: 'ev-live-scheduled', value: 'live_scheduled', label: '방송 예약' },
+    ],
+    cime: [
+        { id: 'ev-live-start', value: 'live_start', label: '라이브 시작' },
+        { id: 'ev-live-end', value: 'live_end', label: '방송 종료' },
+        { id: 'ev-live-scheduled', value: 'live_scheduled', label: '방송 예약' },
+    ],
+    twitter: [
+        { id: 'ev-post', value: 'post', label: '새 트윗 (Post)' },
+        { id: 'ev-space-start', value: 'space_start', label: '스페이스 시작 (음성 방송)' },
+        { id: 'ev-space-end', value: 'space_end', label: '스페이스 종료' },
+    ],
+    instagram: [
+        { id: 'ev-feed-post', value: 'feed_post', label: '피드 포스트' },
+        { id: 'ev-story', value: 'story', label: '스토리' },
+        { id: 'ev-reel', value: 'reel', label: '릴스 (Reels)' },
+    ],
+    spotify: [
+        { id: 'ev-post', value: 'post', label: '새 트랙/음원' },
+        { id: 'ev-playlist', value: 'playlist', label: '플레이리스트' },
+        { id: 'ev-album', value: 'album', label: '새 앨범 (Album)' },
+    ],
+    naver_cafe: [
+        { id: 'ev-post', value: 'post', label: '새 게시글' },
+        { id: 'ev-notice', value: 'notice', label: '공지사항' },
+        { id: 'ev-comment', value: 'comment', label: '댓글' },
+    ],
+};
+
+const PLATFORM_URL_HINTS = {
+    youtube: {
+        placeholder: '예: https://youtube.com/@채널명  또는  https://youtube.com/channel/UC...',
+        hint: 'YouTube 채널 핸들(@이름) 또는 채널 전체 URL을 입력하세요.'
+    },
+    chzzk: {
+        placeholder: '예: https://chzzk.naver.com/4b73b508d4b31a89bba4c1800f40d172',
+        hint: '치지직 채널 URL 또는 32자리 고유 채널 ID를 입력하세요.'
+    },
+    soop: {
+        placeholder: '예: https://sooplive.com/방송국ID',
+        hint: 'SOOP(아프리카TV) 방송국 URL 또는 BJ 아이디를 입력하세요.'
+    },
+    cime: {
+        placeholder: '예: https://ci.me/@채널명',
+        hint: '씨미(ci.me) 채널 URL 또는 @채널명을 입력하세요.'
+    },
+    twitter: {
+        placeholder: '예: https://x.com/계정명  또는  아이디 (@ 제외)',
+        hint: 'X (Twitter) 프로필 URL 또는 @를 제외한 영문 계정명을 입력하세요.'
+    },
+    instagram: {
+        placeholder: '예: https://instagram.com/계정명',
+        hint: 'Instagram 프로필 URL 또는 계정명을 입력하세요.'
+    },
+    spotify: {
+        placeholder: '예: https://open.spotify.com/artist/아티스트ID',
+        hint: '스포티파이 아티스트 URL 또는 아티스트 ID를 입력하세요.'
+    },
+    naver_cafe: {
+        placeholder: '예: https://cafe.naver.com/카페명',
+        hint: '네이버 카페 주소(카페 고유명)를 입력하세요.'
+    },
+};
+
+function updateModalForPlatform(platform, selectedKinds = null) {
+    const box = $('events-box');
+    const targetEl = $('modal-target');
+    const hintEl = $('modal-target-hint');
+
+    const kinds = PLATFORM_EVENT_KINDS[platform] || PLATFORM_EVENT_KINDS.chzzk;
+    if (box) {
+        box.innerHTML = kinds.map(k => {
+            const defaultChecked = selectedKinds ? selectedKinds.includes(k.value) : true;
+            return `<label><input type="checkbox" id="${k.id}" value="${k.value}" ${defaultChecked ? 'checked' : ''}> ${escapeHtml(k.label)}</label>`;
+        }).join('');
+    }
+
+    const hintInfo = PLATFORM_URL_HINTS[platform] || { placeholder: 'URL 또는 ID 입력', hint: '추적할 URL을 입력하세요.' };
+    if (targetEl) targetEl.placeholder = hintInfo.placeholder;
+    if (hintEl) hintEl.textContent = hintInfo.hint;
+}
+
 function openConfigModal(slotNum = null) {
     state.editingSlot = slotNum;
     const dialog = $('config-dialog');
@@ -587,17 +767,14 @@ function openConfigModal(slotNum = null) {
 
         const item = state.settings.find(s => s.slot === slotNum);
         if (item) {
-            $('modal-platform').value = item.platform || 'chzzk';
+            const p = item.platform || 'chzzk';
+            $('modal-platform').value = p;
             $('modal-target').value = item.target_url || '';
             chSel.value = item.channel_id || '';
             roleSel.value = item.role_id || '';
             $('modal-custom-msg').value = item.custom_message || '';
             $('modal-enabled').checked = !!item.enabled;
-
-            const kinds = item.kinds || ['live_start'];
-            $('ev-live-start').checked = kinds.includes('live_start');
-            $('ev-live-end').checked = kinds.includes('live_end');
-            $('ev-live-scheduled').checked = kinds.includes('live_scheduled');
+            updateModalForPlatform(p, item.kinds || null);
         }
     } else {
         // Adding new slot
@@ -615,14 +792,11 @@ function openConfigModal(slotNum = null) {
         roleSel.value = '';
         $('modal-custom-msg').value = '';
         $('modal-enabled').checked = true;
-        $('ev-live-start').checked = true;
-        $('ev-live-end').checked = true;
-        $('ev-live-scheduled').checked = true;
+        updateModalForPlatform('chzzk', null);
     }
 
     dialog.showModal();
 }
-
 async function handleSaveSlot(e) {
     e.preventDefault();
     const errorEl = $('modal-form-error');
@@ -636,9 +810,16 @@ async function handleSaveSlot(e) {
     const enabled = $('modal-enabled').checked;
 
     const kinds = [];
-    if ($('ev-live-start').checked) kinds.push('live_start');
-    if ($('ev-live-end').checked) kinds.push('live_end');
-    if ($('ev-live-scheduled').checked) kinds.push('live_scheduled');
+    // Dynamically collect all checked event inputs
+    $('events-box')?.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+        kinds.push(cb.value);
+    });
+    // Legacy fallback
+    if (kinds.length === 0) {
+        if ($('ev-live-start')?.checked) kinds.push('live_start');
+        if ($('ev-live-end')?.checked) kinds.push('live_end');
+        if ($('ev-live-scheduled')?.checked) kinds.push('live_scheduled');
+    }
 
     if (!targetUrl) {
         errorEl.textContent = '추적할 URL 또는 채널 ID를 입력해주세요.';
@@ -801,7 +982,7 @@ function setupEventListeners() {
         renderSourceList();
     });
 
-    // Refresh buttons with live bot guild recheck
+    // Refresh guild buttons
     const handleRefresh = async () => {
         try {
             const bg = await apiFetch('/api/bot/guilds');
@@ -818,6 +999,43 @@ function setupEventListeners() {
 
     $('btn-refresh-sources')?.addEventListener('click', handleRefresh);
     $('btn-aside-refresh')?.addEventListener('click', handleRefresh);
+    $('btn-refresh-guilds')?.addEventListener('click', handleRefresh);
+
+    // Test notify modal
+    $('btn-test-notify')?.addEventListener('click', () => {
+        if (!state.token && !state.demo) {
+            showToast('로그인 후 사용할 수 있습니다.');
+            return;
+        }
+        $('test-notify-dialog')?.showModal();
+    });
+    $('btn-close-test-dialog')?.addEventListener('click', () => $('test-notify-dialog')?.close());
+    $('btn-cancel-test-dialog')?.addEventListener('click', () => $('test-notify-dialog')?.close());
+    $('btn-send-test-notify')?.addEventListener('click', async () => {
+        const platform = $('test-platform')?.value;
+        const errEl = $('test-notify-error');
+        if (errEl) errEl.style.display = 'none';
+
+        if (state.demo) {
+            showToast(`${platform} 테스트 알림은 체험 모드에서 지원하지 않습니다. 실제 서버에 봇을 초대하고 시도해주세요.`);
+            $('test-notify-dialog')?.close();
+            return;
+        }
+
+        try {
+            const result = await apiFetch('/api/test_notify', {
+                method: 'POST',
+                body: JSON.stringify({ guild_id: state.selectedGuild, platform })
+            });
+            showToast(result.message || '테스트 알림을 전송했습니다!');
+            $('test-notify-dialog')?.close();
+        } catch (err) {
+            if (errEl) {
+                errEl.textContent = `전송 실패: ${err.message}`;
+                errEl.style.display = 'block';
+            }
+        }
+    });
 
     // Filter tabs (all / enabled / disabled)
     document.querySelectorAll('.source-filters button').forEach(btn => {

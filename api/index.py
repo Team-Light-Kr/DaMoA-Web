@@ -155,14 +155,14 @@ def get_user_me_guilds():
 @app.route('/api/bot/guilds', methods=['GET'])
 def get_bot_guilds():
     """Get list of guild IDs where DaMoA bot is present"""
-    bot_token = os.getenv('DISCORD_BOT_TOKEN')
+    bot_token = os.getenv('DISCORD_BOT_TOKEN') or os.getenv('DISCORD_TOKEN')
     guild_ids = set()
 
     # 1. Fetch live guilds from Discord API if bot token is configured
     if bot_token:
         try:
             res = _http_session.get(
-                f'{DISCORD_API_BASE}/users/@me/guilds',
+                f'{DISCORD_API_BASE}/users/@me/guilds?limit=200',
                 headers=discord_headers(bot_token, is_bot=True),
                 timeout=5
             )
@@ -188,6 +188,44 @@ def get_bot_guilds():
         pass
 
     return jsonify({'status': 'success', 'guild_ids': list(guild_ids)})
+
+
+
+@app.route('/api/bot/check_guild', methods=['GET'])
+def check_bot_guild():
+    """Check if bot is specifically present in a given guild"""
+    guild_id = request.args.get('guild_id')
+    if not guild_id:
+        return jsonify({'status': 'error', 'message': 'guild_id required'}), 400
+
+    bot_token = os.getenv('DISCORD_BOT_TOKEN') or os.getenv('DISCORD_TOKEN')
+    if bot_token:
+        try:
+            res = _http_session.get(
+                f'{DISCORD_API_BASE}/guilds/{guild_id}',
+                headers=discord_headers(bot_token, is_bot=True),
+                timeout=5
+            )
+            if res.status_code == 200:
+                return jsonify({'status': 'success', 'present': True, 'guild_id': guild_id})
+        except Exception as e:
+            app.logger.warning(f"Error checking guild {guild_id}: {e}")
+
+    try:
+        conn, use_neon = get_db_connection()
+        cursor = conn.cursor()
+        if use_neon:
+            cursor.execute('SELECT 1 FROM settings WHERE guild=%s LIMIT 1', (guild_id,))
+        else:
+            cursor.execute('SELECT 1 FROM settings WHERE guild=? LIMIT 1', (guild_id,))
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            return jsonify({'status': 'success', 'present': True, 'guild_id': guild_id})
+    except Exception:
+        pass
+
+    return jsonify({'status': 'success', 'present': False, 'guild_id': guild_id})
 
 
 @app.route('/api/settings', methods=['GET'])
@@ -440,7 +478,7 @@ def get_channels():
             {'id': '1003', 'name': '일반'},
         ]})
 
-    bot_token = os.getenv('DISCORD_TOKEN')
+    bot_token = os.getenv('DISCORD_BOT_TOKEN') or os.getenv('DISCORD_TOKEN')
     if guild_id and bot_token:
         try:
             res = _http_session.get(
@@ -474,7 +512,7 @@ def get_roles():
             {'id': '9002', 'name': '@방송 알림'},
         ]})
 
-    bot_token = os.getenv('DISCORD_TOKEN')
+    bot_token = os.getenv('DISCORD_BOT_TOKEN') or os.getenv('DISCORD_TOKEN')
     if guild_id and bot_token:
         try:
             res = _http_session.get(
@@ -615,3 +653,82 @@ def auth_callback():
 
     return redirect(f'/#access_token={access_token}&token_type={token_data.get("token_type", "Bearer")}')
 
+
+
+@app.route('/invite', methods=['GET'])
+@app.route('/api/invite', methods=['GET'])
+def bot_invite():
+    guild_id = request.args.get('guild_id', '')
+    invite_url = (
+        'https://discord.com/oauth2/authorize'
+        f'?client_id={DISCORD_CLIENT_ID}'
+        '&permissions=8'
+        '&scope=bot%20applications.commands'
+    )
+    if guild_id:
+        invite_url += f'&guild_id={guild_id}'
+    return redirect(invite_url)
+
+
+@app.route('/api/test_notify', methods=['POST'])
+@require_auth
+def test_notify():
+    data = request.get_json() or {}
+    guild_id = data.get('guild_id')
+    platform = data.get('platform', 'chzzk')
+    if not guild_id:
+        return jsonify({'error': 'guild_id required'}), 400
+    if platform not in PLATFORM_META:
+        return jsonify({'error': f'Unknown platform: {platform}'}), 400
+    try:
+        conn, use_neon = get_db_connection()
+        cursor = conn.cursor()
+        if use_neon:
+            cursor.execute("SELECT channel, webhook_url FROM settings WHERE guild=%s AND source=%s AND enabled=true LIMIT 3", (guild_id, platform))
+        else:
+            cursor.execute("SELECT channel, webhook_url FROM settings WHERE guild=? AND source=? AND enabled=1 LIMIT 3", (guild_id, platform))
+        rows = cursor.fetchall()
+        conn.close()
+    except Exception as e:
+        return jsonify({'error': f'DB error: {e}'}), 500
+    if not rows:
+        pname = PLATFORM_META[platform]["name"]
+        return jsonify({'error': f'{pname} 플랫폼의 설정된 채널이 없습니다.', 'code': 'no_settings'}), 404
+    platform_name = PLATFORM_META[platform]["name"]
+    platform_color = int(PLATFORM_META[platform]["color"].lstrip("#"), 16)
+    from datetime import datetime, timezone, timedelta
+    now_kst = datetime.now(timezone(timedelta(hours=9)))
+    time_str = now_kst.strftime("%Y.%m.%d %H:%M:%S")
+    payload = {
+        "flags": 1 << 15,
+        "components": [{"type": 17, "accent_color": platform_color, "components": [
+            {"type": 10, "content": "**DaMoA 테스트**\n-# " + time_str + " · " + platform_name},
+            {"type": 14, "divider": True, "spacing": 1},
+            {"type": 10, "content": "🔔 **" + platform_name + " 테스트 알림**\n\n이 메시지는 DaMoA 테스트 알림입니다."},
+            {"type": 14, "divider": False, "spacing": 1},
+            {"type": 1, "components": [{"type": 2, "style": 5, "label": "원문 보기", "url": "https://damoa.teamlight.pe.kr"}]},
+            {"type": 14, "divider": True, "spacing": 1},
+            {"type": 10, "content": "-# " + platform_name + " | " + time_str},
+        ]}]
+    }
+    sent_count = 0
+    errors = []
+    for row in rows:
+        channel_id = row["channel"] if isinstance(row, dict) else row[0]
+        webhook_url = row["webhook_url"] if isinstance(row, dict) else row[1]
+        try:
+            if webhook_url:
+                resp = requests.post(webhook_url, json=payload, params={"wait": "true"}, timeout=10)
+                if resp.status_code in (200, 204): sent_count += 1
+                else: errors.append(f"Webhook HTTP {resp.status_code}")
+            else:
+                bot_token = os.getenv("DISCORD_BOT_TOKEN") or os.getenv("DISCORD_TOKEN")
+                if bot_token and channel_id:
+                    resp = requests.post(f"https://discord.com/api/v10/channels/{channel_id}/messages", json=payload, headers={"Authorization": f"Bot {bot_token}", "User-Agent": DISCORD_USER_AGENT}, timeout=10)
+                    if resp.status_code in (200, 204): sent_count += 1
+                    else: errors.append(f"Bot API HTTP {resp.status_code}")
+        except Exception as e:
+            errors.append(str(e))
+    if sent_count > 0:
+        return jsonify({"message": f"{platform_name} 테스트 알림을 {sent_count}개 채널에 전송했습니다!", "sent": sent_count})
+    return jsonify({"error": "전송에 실패했습니다.", "details": errors}), 500

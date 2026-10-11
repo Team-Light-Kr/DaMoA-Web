@@ -1280,3 +1280,303 @@ footer nav a:hover { color: var(--ink); }
   }
   .mobile-nav .active { color: #555f8f; }
 }
+
+/* ── Guild Card Grid (Server Selector - todo1.png style) ──────── */
+.server-selector-area {
+  margin: 16px 0 28px;
+  width: 100%;
+}
+.server-picker-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.server-greeting {
+  font-size: 13px;
+  font-weight: 700;
+  color: #7a8a9f;
+  margin-bottom: 6px;
+  letter-spacing: .02em;
+}
+.server-main-title {
+  font-size: clamp(24px, 4vw, 32px);
+  font-weight: 800;
+  color: #1a2233;
+  letter-spacing: -0.04em;
+  margin-bottom: 6px;
+}
+.server-sub-title {
+  font-size: 14px;
+  color: #65748a;
+  line-height: 1.5;
+}
+.btn-refresh-server-list {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  background: white;
+  border: 1.5px solid #d5deea;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #3f4e65;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.btn-refresh-server-list:hover {
+  background: #f7fafc;
+  border-color: #b8b5e8;
+  color: #7b4eff;
+  transform: translateY(-1px);
+}
+
+.guild-section-label {
+  font-size: 16px;
+  font-weight: 800;
+  color: #243142;
+  margin: 28px 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.guild-section-label:first-child { margin-top: 0; }
+
+/* Large Server Cards (DaMoA가 있는 서버) */
+.server-large-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.server-large-card {
+  background: white;
+  border: 2px solid #e2eaf4;
+  border-radius: 20px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 175px;
+  cursor: pointer;
+  transition: all 0.22s var(--ease);
+  position: relative;
+  box-shadow: 0 4px 18px rgba(168,216,240,0.12);
+}
+.server-large-card:hover {
+  border-color: #b8b5e8;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(184,181,232,0.3);
+}
+.server-large-card.selected {
+  border-color: #7b4eff;
+  background: #ffffff;
+  box-shadow: 0 6px 26px rgba(123,78,255,0.2);
+}
+.server-large-card.selected::before {
+  content: '선택됨';
+  position: absolute;
+  top: -10px;
+  right: 18px;
+  background: #7b4eff;
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 10px;
+  border-radius: 99px;
+  box-shadow: 0 2px 8px rgba(123,78,255,0.35);
+}
+.server-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.server-icon-large {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--sky), var(--lavender));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  flex-shrink: 0;
+}
+.server-icon-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.server-icon-initials {
+  font-size: 18px;
+  font-weight: 800;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+.server-role-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 99px;
+  background: rgba(123,78,255,0.1);
+  color: #7b4eff;
+  letter-spacing: .02em;
+}
+.server-card-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: #1a2233;
+  line-height: 1.3;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.server-card-meta {
+  font-size: 12px;
+  color: #7a8a9f;
+  margin-bottom: 14px;
+}
+.server-card-action {
+  font-size: 13px;
+  font-weight: 700;
+  color: #7b4eff;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: transform 0.2s;
+}
+.server-large-card:hover .server-card-action {
+  transform: translateX(4px);
+}
+
+/* Compact Server Cards (초대할 수 있는 서버) */
+.server-compact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+.server-compact-card {
+  background: white;
+  border: 1.5px solid #e8eef5;
+  border-radius: 16px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transition: all 0.2s var(--ease);
+}
+.server-compact-card:hover {
+  border-color: #ccd7e6;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.04);
+}
+.server-compact-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+  min-width: 0;
+}
+.server-icon-compact {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #e4ecf7, #dbe4f0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.server-icon-compact img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.server-compact-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #243142;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.server-invite-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  background: white;
+  border: 1.5px solid #d5deea;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #3f4e65;
+  text-decoration: none;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.server-invite-btn:hover {
+  background: linear-gradient(135deg, #5865F2, #7b4eff);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 4px 12px rgba(88,101,242,0.35);
+  transform: translateY(-1px);
+}
+.guild-empty {
+  color: #9ca8c4;
+  font-size: 14px;
+  padding: 24px 0;
+  text-align: center;
+}
+
+/* ── Precise Vertical Centering for Chzzk Icon ───────────────── */
+img[src*="ANd9GcTL5o8WMTcizruTWGFYaAhK61h-fAJWIeRGGI5g8NC9dA"] {
+  object-position: center 38% !important;
+  transform: translateY(-2px);
+}
+.platform-bubble img[src*="ANd9GcTL5o8WMTcizruTWGFYaAhK61h-fAJWIeRGGI5g8NC9dA"] {
+  transform: translateY(-2px) scale(0.96);
+}
+.chip-icon img[src*="ANd9GcTL5o8WMTcizruTWGFYaAhK61h-fAJWIeRGGI5g8NC9dA"] {
+  transform: translateY(-2px) scale(0.96);
+}
+
+/* ── Clear Contrast for Action & Filter Buttons ───────────────── */
+.source-filters {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.source-filters button {
+  padding: 7px 16px;
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 700;
+  background: #f0f3f8;
+  border: 1.5px solid #e0e6ef;
+  color: #596a7e;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.source-filters button:hover {
+  background: #e6ecf5;
+  color: #243142;
+}
+.source-filters button.active, .source-filters button[aria-pressed="true"] {
+  background: white;
+  border-color: #7b4eff;
+  color: #7b4eff;
+  box-shadow: 0 2px 8px rgba(123,78,255,0.15);
+}
