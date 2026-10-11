@@ -21,8 +21,16 @@ DISCORD_REDIRECT_URI = os.getenv('DISCORD_REDIRECT_URI', 'https://damoa.teamligh
 DISCORD_API_BASE = 'https://discord.com/api/v10'
 
 # Database configuration
-DEFAULT_NEON_DB_URL = 'postgresql://neondb_owner:npg_qoNf2Brm7KwE@ep-summer-bonus-b5euqtai-pooler.c-7.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require'
-NEON_DB_URL = os.getenv('NEON_DB_URL') or os.getenv('DATABASE_URL') or DEFAULT_NEON_DB_URL
+def _clean_neon_url(raw_url):
+    default_url = 'postgresql://neondb_owner:npg_qoNf2Brm7KwE@ep-summer-bonus-b5euqtai-pooler.c-7.us-east-2.aws.neon.tech/neondb?sslmode=require'
+    raw = (raw_url or default_url).strip()
+    cleaned = re.sub(r'[?&]channel_binding=[^&]*', '', raw).strip()
+    if '?' not in cleaned and '&' in cleaned:
+        cleaned = cleaned.replace('&', '?', 1)
+    return cleaned
+
+DEFAULT_NEON_DB_URL = 'postgresql://neondb_owner:npg_qoNf2Brm7KwE@ep-summer-bonus-b5euqtai-pooler.c-7.us-east-2.aws.neon.tech/neondb?sslmode=require'
+NEON_DB_URL = _clean_neon_url(os.getenv('NEON_DB_URL') or os.getenv('DATABASE_URL') or DEFAULT_NEON_DB_URL)
 USE_NEON = bool(NEON_DB_URL)
 
 # Bot Token configuration
@@ -694,16 +702,23 @@ def test_notify():
         conn, use_neon = get_db_connection()
         cursor = conn.cursor()
         if use_neon:
-            cursor.execute("SELECT channel, webhook_url FROM settings WHERE guild=%s AND source=%s AND enabled=true LIMIT 3", (guild_id, platform))
+            cursor.execute("SELECT channel, webhook_url FROM settings WHERE guild=%s AND source=%s AND enabled=1 LIMIT 3", (guild_id, platform))
         else:
             cursor.execute("SELECT channel, webhook_url FROM settings WHERE guild=? AND source=? AND enabled=1 LIMIT 3", (guild_id, platform))
         rows = cursor.fetchall()
+        if not rows:
+            # Fallback to any configured channel in this guild
+            if use_neon:
+                cursor.execute("SELECT channel, webhook_url FROM settings WHERE guild=%s AND channel IS NOT NULL AND channel > 0 LIMIT 1", (guild_id,))
+            else:
+                cursor.execute("SELECT channel, webhook_url FROM settings WHERE guild=? AND channel IS NOT NULL AND channel > 0 LIMIT 1", (guild_id,))
+            rows = cursor.fetchall()
         conn.close()
     except Exception as e:
         return jsonify({'error': f'DB error: {e}'}), 500
     if not rows:
         pname = PLATFORM_META[platform]["name"]
-        return jsonify({'error': f'{pname} 플랫폼의 설정된 채널이 없습니다.', 'code': 'no_settings'}), 404
+        return jsonify({'error': f'{pname} 알림을 전송할 채널을 찾을 수 없습니다. 슬롯 설정에서 채널을 먼저 선택해주세요.', 'code': 'no_settings'}), 400
     platform_name = PLATFORM_META[platform]["name"]
     platform_color = int(PLATFORM_META[platform]["color"].lstrip("#"), 16)
     from datetime import datetime, timezone, timedelta

@@ -33,8 +33,10 @@ def check_bot_guild(path=''):
         pass
 
     try:
-        import psycopg2
-        neon_url = os.getenv('NEON_DB_URL') or os.getenv('DATABASE_URL') or 'postgresql://neondb_owner:npg_qoNf2Brm7KwE@ep-summer-bonus-b5euqtai-pooler.c-7.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require'
+        import re
+        raw_url = (os.getenv('NEON_DB_URL') or os.getenv('DATABASE_URL') or 'postgresql://neondb_owner:npg_qoNf2Brm7KwE@ep-summer-bonus-b5euqtai-pooler.c-7.us-east-2.aws.neon.tech/neondb?sslmode=require').strip()
+        neon_url = re.sub(r'[?&]channel_binding=[^&]*', '', raw_url).strip()
+        if '?' not in neon_url and '&' in neon_url: neon_url = neon_url.replace('&', '?', 1)
         conn = psycopg2.connect(neon_url)
         cur = conn.cursor()
         cur.execute('SELECT 1 FROM settings WHERE guild=%s LIMIT 1', (guild_id,))

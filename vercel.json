@@ -79,7 +79,15 @@
       "destination": "/api/settings.py"
     },
     {
+      "source": "/api/settings/(.*)",
+      "destination": "/api/settings.py"
+    },
+    {
       "source": "/api/test_notify",
+      "destination": "/api/test_notify.py"
+    },
+    {
+      "source": "/api/test_notify/(.*)",
       "destination": "/api/test_notify.py"
     },
     {
