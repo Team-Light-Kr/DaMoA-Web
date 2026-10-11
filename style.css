@@ -99,7 +99,12 @@ p { color: var(--muted); }
 .brand { display: flex; align-items: center; gap: 11px; flex-shrink: 0; }
 .brand-logo-img {
   width: 40px;
+  min-width: 40px;
+  max-width: 40px;
   height: 40px;
+  min-height: 40px;
+  max-height: 40px;
+  aspect-ratio: 1 / 1;
   border-radius: 13px;
   object-fit: cover;
   background: linear-gradient(135deg, #a8d8f0, #b8b5e8);
@@ -110,6 +115,7 @@ p { color: var(--muted); }
   font-size: 18px;
   font-weight: 800;
   box-shadow: 0 4px 12px rgba(184, 181, 232, 0.35);
+  flex-shrink: 0;
 }
 .brand strong { font-size: 25px; font-weight: 780; letter-spacing: -1.2px; font-family: 'Outfit', sans-serif; }
 .brand .brand-suffix { font-size: 11px; letter-spacing: 1.5px; color: var(--muted); margin-left: 3px; font-weight: 600; }
@@ -739,23 +745,40 @@ footer nav a:hover { color: var(--ink); }
 
 .dashboard-shell {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 240px minmax(0, 1fr);
   min-height: 100vh;
   background: #f4f7fb;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 /* Sidebar */
 .sidebar {
   border-right: 1px solid #e0e7ee;
-  padding: 30px 20px;
+  padding: 28px 16px;
   background: #ffffff;
   display: flex;
   flex-direction: column;
   position: sticky;
   top: 0;
   height: 100vh;
+  width: 240px;
+  min-width: 240px;
+  max-width: 240px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  z-index: 20;
 }
-.sidebar .brand { padding-left: 7px; }
+.sidebar .brand {
+  padding-left: 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  width: 100%;
+}
 .workspace-label {
   font-size: 10px;
   letter-spacing: 1.8px;
@@ -795,7 +818,13 @@ footer nav a:hover { color: var(--ink); }
 .sidebar-bottom p { font-size: 11px; margin: 14px 8px 0; color: #6d7f94; line-height: 1.6; }
 
 /* Workspace Main Area */
-.workspace { min-width: 0; }
+.workspace {
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
 .workspace-top {
   height: 76px;
   border-bottom: 1px solid #e0e7ee;
@@ -825,9 +854,12 @@ footer nav a:hover { color: var(--ink); }
 .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
 .workspace-content {
-  max-width: 1440px;
+  max-width: 1300px;
   margin: auto;
   padding: 30px 42px 70px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 /* Banner */
@@ -1223,7 +1255,8 @@ footer nav a:hover { color: var(--ink); }
 @media (max-width: 1100px) {
   .dash-grid { grid-template-columns: 1fr; }
   .aside-panel { display: none; }
-  .dashboard-shell { grid-template-columns: 210px 1fr; }
+  .dashboard-shell { grid-template-columns: 220px minmax(0, 1fr); }
+  .sidebar { width: 220px; min-width: 220px; max-width: 220px; padding: 24px 12px; }
   .workspace-content { padding: 24px; }
   .workspace-top { padding: 0 24px; }
   .hero { gap: 30px; }
@@ -1419,7 +1452,12 @@ footer nav a:hover { color: var(--ink); }
 }
 .server-icon-large {
   width: 52px;
+  min-width: 52px;
+  max-width: 52px;
   height: 52px;
+  min-height: 52px;
+  max-height: 52px;
+  aspect-ratio: 1 / 1;
   border-radius: 16px;
   overflow: hidden;
   background: linear-gradient(135deg, var(--sky), var(--lavender));
@@ -1484,7 +1522,7 @@ footer nav a:hover { color: var(--ink); }
 /* Compact Server Cards (초대할 수 있는 서버) */
 .server-compact-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 12px;
 }
 .server-compact-card {
@@ -1511,7 +1549,12 @@ footer nav a:hover { color: var(--ink); }
 }
 .server-icon-compact {
   width: 40px;
+  min-width: 40px;
+  max-width: 40px;
   height: 40px;
+  min-height: 40px;
+  max-height: 40px;
+  aspect-ratio: 1 / 1;
   border-radius: 12px;
   overflow: hidden;
   background: linear-gradient(135deg, #e4ecf7, #dbe4f0);

@@ -324,6 +324,7 @@ function renderGuildSelect() {
                     const isSelected = g.id === state.selectedGuild;
                     const icon = g.icon ? `https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png?size=128` : null;
                     const initials = g.name.replace(/[^\p{L}\p{N}]/gu, '').substring(0, 2).toUpperCase() || 'S';
+                    const channelInfo = (isSelected && state.channels.length > 0) ? ` · 채널 ${state.channels.length}개` : '';
                     html += `
                     <div class="server-large-card ${isSelected ? 'selected' : ''}" data-guild-id="${g.id}" role="button" tabindex="0">
                         <div class="server-card-top">
@@ -334,7 +335,7 @@ function renderGuildSelect() {
                             <span class="server-role-badge">관리자</span>
                         </div>
                         <div class="server-card-name" title="${escapeHtml(g.name)}">${escapeHtml(g.name)}</div>
-                        <div class="server-card-meta">알림 설정 · 슬롯 관리</div>
+                        <div class="server-card-meta">알림 설정 · 슬롯 관리${channelInfo}</div>
                         <div class="server-card-action">열기 →</div>
                     </div>`;
                 });
@@ -364,16 +365,22 @@ function renderGuildSelect() {
             }
             grid.innerHTML = html;
 
-            // Bind large card click
+            // Bind large card click (열기 ->)
             grid.querySelectorAll('.server-large-card[data-guild-id]').forEach(card => {
-                const handler = () => {
+                const handler = async (e) => {
                     const gid = card.dataset.guildId;
                     if (gid !== state.selectedGuild) {
-                        onGuildChange(gid);
+                        await onGuildChange(gid);
                     }
+                    const target = document.getElementById('dash-section-title') || document.getElementById('main-grid-panel');
+                    if (target) {
+                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                    const guildObj = state.guilds.find(g => String(g.id) === String(gid));
+                    showToast(`'${guildObj ? guildObj.name : '선택한 서버'}' 알림 설정으로 이동했습니다.`);
                 };
                 card.addEventListener('click', handler);
-                card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') handler(); });
+                card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') handler(e); });
             });
         }
     }
@@ -625,6 +632,17 @@ async function onGuildChange(guildId) {
                 const guildObj = state.guilds.find(g => g.id === guildId);
                 if (opt && guildObj) opt.textContent = guildObj.name;
             }
+        const guildObj = state.guilds.find(g => String(g.id) === String(guildId));
+        if (guildObj) {
+            const crumb = $('crumb-title');
+            if (crumb) crumb.textContent = guildObj.name;
+            const dashTitle = $('dash-section-title');
+            if (dashTitle) dashTitle.textContent = `${guildObj.name} 알림 공간`;
+            const dashDesc = $('dash-section-desc');
+            if (dashDesc) {
+                const chText = state.channels.length > 0 ? `감지된 텍스트 채널 ${state.channels.length}개 · 역할 ${state.roles.length}개` : '채널 불러오는 중...';
+                dashDesc.textContent = `${guildObj.name} 서버의 ${chText}와 연결된 알림 슬롯을 설정하세요.`;
+            }
         }
     } catch (e) {
         console.error('Failed to load guild details:', e);
@@ -739,7 +757,7 @@ function updateModalForPlatform(platform, selectedKinds = null) {
     if (hintEl) hintEl.textContent = hintInfo.hint;
 }
 
-function openConfigModal(slotNum = null) {
+async function openConfigModal(slotNum = null) {
     state.editingSlot = slotNum;
     const dialog = $('config-dialog');
     const titleEl = $('modal-dialog-title');
@@ -747,25 +765,43 @@ function openConfigModal(slotNum = null) {
     const errorEl = $('modal-form-error');
     errorEl.style.display = 'none';
 
+    // If channels or roles are empty, fetch live
+    if (state.selectedGuild && (!state.channels || state.channels.length === 0)) {
+        try {
+            const [ch, ro] = await Promise.all([
+                apiFetch(`/api/channels?guild_id=${state.selectedGuild}`).catch(() => ({ channels: [] })),
+                apiFetch(`/api/roles?guild_id=${state.selectedGuild}`).catch(() => ({ roles: [] }))
+            ]);
+            if (ch && ch.channels) state.channels = ch.channels;
+            if (ro && ro.roles) state.roles = ro.roles;
+        } catch {}
+    }
+
     // Populate channels dropdown
     const chSel = $('modal-channel');
-    chSel.innerHTML = '<option value="">채널을 선택하세요</option>';
-    state.channels.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c.id;
-        opt.textContent = `# ${c.name}`;
-        chSel.appendChild(opt);
-    });
+    if (state.channels && state.channels.length > 0) {
+        chSel.innerHTML = '<option value="">채널을 선택하세요</option>';
+        state.channels.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = `# ${c.name}`;
+            chSel.appendChild(opt);
+        });
+    } else {
+        chSel.innerHTML = '<option value="">텍스트 채널이 감지되지 않았습니다 (봇 초대 권한 확인)</option>';
+    }
 
     // Populate roles dropdown
     const roleSel = $('modal-role');
     roleSel.innerHTML = '<option value="">멘션하지 않음</option>';
-    state.roles.forEach(r => {
-        const opt = document.createElement('option');
-        opt.value = r.id;
-        opt.textContent = `@ ${r.name}`;
-        roleSel.appendChild(opt);
-    });
+    if (state.roles) {
+        state.roles.forEach(r => {
+            const opt = document.createElement('option');
+            opt.value = r.id;
+            opt.textContent = `@ ${r.name}`;
+            roleSel.appendChild(opt);
+        });
+    }
 
     if (slotNum !== null) {
         // Editing existing slot
