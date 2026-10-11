@@ -84,7 +84,7 @@ async function apiFetch(path, opts = {}) {
     if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
     if (state.demo) headers['X-Demo'] = '1';
     try {
-        const res = await fetch(path, { ...opts, headers });
+        const res = await fetch(path, { cache: 'no-store', ...opts, headers });
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
             throw new Error(err.error || `HTTP ${res.status}`);
@@ -276,7 +276,8 @@ function updateUserInfoUI() {
     if (state.user) {
         const uName = state.user.global_name || state.user.username || '사용자';
         nameEl.textContent = uName;
-        if (pickerUserEl) pickerUserEl.textContent = uName;
+        const cleanName = uName.replace(/^!+\s*/, '');
+        if (pickerUserEl) pickerUserEl.textContent = cleanName;
         if (state.user.avatar) {
             avatarEl.innerHTML = `<img src="https://cdn.discordapp.com/avatars/${state.user.id}/${state.user.avatar}.png?size=64" alt="avatar">`;
         } else {
@@ -572,9 +573,10 @@ async function loadUserData() {
         console.warn('Bot guild status unavailable from backend.');
     }
 
-    // Auto-select first guild
+    // Auto-select first guild with bot, or fallback to first guild
     if (state.guilds.length > 0) {
-        state.selectedGuild = state.guilds[0].id;
+        const preferred = state.guilds.find(g => state.botGuilds.has(g.id)) || state.guilds[0];
+        state.selectedGuild = preferred.id;
         renderGuildSelect();
         await onGuildChange(state.selectedGuild);
     } else {

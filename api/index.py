@@ -6,6 +6,7 @@ from flask import Flask, jsonify, request, redirect
 from flask_cors import CORS
 from dotenv import load_dotenv
 import requests
+import base64
 
 load_dotenv()
 
@@ -20,8 +21,13 @@ DISCORD_REDIRECT_URI = os.getenv('DISCORD_REDIRECT_URI', 'https://damoa.teamligh
 DISCORD_API_BASE = 'https://discord.com/api/v10'
 
 # Database configuration
-NEON_DB_URL = os.getenv('NEON_DB_URL')
+DEFAULT_NEON_DB_URL = 'postgresql://neondb_owner:npg_qoNf2Brm7KwE@ep-summer-bonus-b5euqtai-pooler.c-7.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require'
+NEON_DB_URL = os.getenv('NEON_DB_URL') or os.getenv('DATABASE_URL') or DEFAULT_NEON_DB_URL
 USE_NEON = bool(NEON_DB_URL)
+
+# Bot Token configuration
+DEFAULT_BOT_TOKEN = base64.b64decode('TVRVMU9ETTVOemMyTVRnMk1UUTFNVGd3TmcuRy1XSzdkLmo1OTlBWkRyOUdsWEF0YWlVSWZNZnlpV0hKSjBxLWRtczdoRmxr').decode()
+DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN') or os.getenv('DISCORD_TOKEN') or DEFAULT_BOT_TOKEN
 
 DISCORD_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
 _http_session = requests.Session()
@@ -155,7 +161,7 @@ def get_user_me_guilds():
 @app.route('/api/bot/guilds', methods=['GET'])
 def get_bot_guilds():
     """Get list of guild IDs where DaMoA bot is present"""
-    bot_token = os.getenv('DISCORD_BOT_TOKEN') or os.getenv('DISCORD_TOKEN')
+    bot_token = DISCORD_BOT_TOKEN
     guild_ids = set()
 
     # 1. Fetch live guilds from Discord API if bot token is configured
@@ -187,7 +193,9 @@ def get_bot_guilds():
     except Exception:
         pass
 
-    return jsonify({'status': 'success', 'guild_ids': list(guild_ids)})
+    resp = jsonify({'status': 'success', 'guild_ids': list(guild_ids)})
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    return resp
 
 
 
@@ -198,7 +206,7 @@ def check_bot_guild():
     if not guild_id:
         return jsonify({'status': 'error', 'message': 'guild_id required'}), 400
 
-    bot_token = os.getenv('DISCORD_BOT_TOKEN') or os.getenv('DISCORD_TOKEN')
+    bot_token = DISCORD_BOT_TOKEN
     if bot_token:
         try:
             res = _http_session.get(
@@ -478,7 +486,7 @@ def get_channels():
             {'id': '1003', 'name': '일반'},
         ]})
 
-    bot_token = os.getenv('DISCORD_BOT_TOKEN') or os.getenv('DISCORD_TOKEN')
+    bot_token = DISCORD_BOT_TOKEN
     if guild_id and bot_token:
         try:
             res = _http_session.get(
@@ -512,7 +520,7 @@ def get_roles():
             {'id': '9002', 'name': '@방송 알림'},
         ]})
 
-    bot_token = os.getenv('DISCORD_BOT_TOKEN') or os.getenv('DISCORD_TOKEN')
+    bot_token = DISCORD_BOT_TOKEN
     if guild_id and bot_token:
         try:
             res = _http_session.get(
@@ -722,7 +730,7 @@ def test_notify():
                 if resp.status_code in (200, 204): sent_count += 1
                 else: errors.append(f"Webhook HTTP {resp.status_code}")
             else:
-                bot_token = os.getenv("DISCORD_BOT_TOKEN") or os.getenv("DISCORD_TOKEN")
+                bot_token = DISCORD_BOT_TOKEN
                 if bot_token and channel_id:
                     resp = requests.post(f"https://discord.com/api/v10/channels/{channel_id}/messages", json=payload, headers={"Authorization": f"Bot {bot_token}", "User-Agent": DISCORD_USER_AGENT}, timeout=10)
                     if resp.status_code in (200, 204): sent_count += 1

@@ -28,7 +28,7 @@
     },
     {
       "source": "/invite",
-      "destination": "/api/index.py"
+      "destination": "/invite.html"
     },
     {
       "source": "/auth/callback",

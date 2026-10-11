@@ -845,7 +845,28 @@ footer nav a:hover { color: var(--ink); }
   gap: 12px;
 }
 .banner b { font-weight: 700; margin-right: 8px; }
-.banner .btn { background: rgba(255, 255, 255, 0.8); }
+.banner .btn, #link-invite-server {
+  background: linear-gradient(135deg, #5865F2, #7b4eff) !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  padding: 9px 18px !important;
+  border-radius: 99px !important;
+  box-shadow: 0 4px 12px rgba(88, 101, 242, 0.35) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  text-decoration: none !important;
+  transition: all 0.2s var(--ease) !important;
+  flex-shrink: 0 !important;
+}
+.banner .btn:hover, #link-invite-server:hover {
+  background: linear-gradient(135deg, #4752c4, #6a3fe6) !important;
+  color: #ffffff !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 18px rgba(88, 101, 242, 0.45) !important;
+}
 
 .dash-heading {
   display: flex;

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DaMoA 봇 초대하기 · Team Light</title>
+  <meta name="description" content="DaMoA 봇을 서버에 초대합니다.">
+  <script>
+    (function() {
+      const clientId = "1558397761861451806";
+      const params = new URLSearchParams(window.location.search);
+      const guildId = params.get("guild_id");
+      let url = "https://discord.com/oauth2/authorize?client_id=" + clientId + "&permissions=8&scope=bot%20applications.commands";
+      if (guildId) {
+        url += "&guild_id=" + encodeURIComponent(guildId);
+      }
+      window.location.replace(url);
+    })();
+  </script>
+  <meta http-equiv="refresh" content="0; url=https://discord.com/oauth2/authorize?client_id=1558397761861451806&permissions=8&scope=bot%20applications.commands">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+      background: #0f1117;
+      color: #ffffff;
+      padding: 24px;
+    }
+    .card {
+      background: #171a26;
+      border: 1px solid #2a3147;
+      border-radius: 24px;
+      padding: 40px;
+      text-align: center;
+      max-width: 440px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    }
+    .icon {
+      width: 60px;
+      height: 60px;
+      margin: 0 auto 20px;
+      background: linear-gradient(135deg, #5865F2, #7b4eff);
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 800;
+    }
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0 0 10px;
+    }
+    p {
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 0 0 24px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px 24px;
+      background: linear-gradient(135deg, #5865F2, #7b4eff);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 15px;
+      border-radius: 99px;
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(88, 101, 242, 0.4);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">D</div>
+    <h1>Discord로 이동하는 중...</h1>
+    <p>DaMoA 봇을 서버에 추가하기 위해 공식 Discord 인증 페이지로 이동하고 있습니다.</p>
+    <a class="btn" id="manual-link" href="https://discord.com/oauth2/authorize?client_id=1558397761861451806&permissions=8&scope=bot%20applications.commands">지금 바로 이동하기 →</a>
+  </div>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const gid = params.get("guild_id");
+    if (gid) {
+      document.getElementById("manual-link").href += "&guild_id=" + encodeURIComponent(gid);
+    }
+  </script>
+</body>
+</html>
