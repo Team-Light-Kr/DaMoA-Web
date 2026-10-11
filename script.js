@@ -393,7 +393,7 @@ function checkBotInviteBanner() {
     const currentId = state.selectedGuild;
     if (currentId && !state.botGuilds.has(String(currentId))) {
         banner.style.display = 'flex';
-        inviteLink.href = `https://discord.com/oauth2/authorize?client_id=${CLIENT_ID}&permissions=8&scope=bot%20applications.commands&guild_id=${currentId}`;
+        inviteLink.href = `https://discord.com/oauth2/authorize?client_id=${CLIENT_ID}&permissions=8&integration_type=0&scope=bot%20applications.commands&guild_id=${currentId}`;
     } else {
         banner.style.display = 'none';
     }

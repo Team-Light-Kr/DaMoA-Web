@@ -672,6 +672,7 @@ def bot_invite():
         'https://discord.com/oauth2/authorize'
         f'?client_id={DISCORD_CLIENT_ID}'
         '&permissions=8'
+        '&integration_type=0'
         '&scope=bot%20applications.commands'
     )
     if guild_id:

@@ -10,14 +10,14 @@
       const clientId = "1558397761861451806";
       const params = new URLSearchParams(window.location.search);
       const guildId = params.get("guild_id");
-      let url = "https://discord.com/oauth2/authorize?client_id=" + clientId + "&permissions=8&scope=bot%20applications.commands";
+      let url = "https://discord.com/oauth2/authorize?client_id=" + clientId + "&permissions=8&integration_type=0&scope=bot%20applications.commands";
       if (guildId) {
         url += "&guild_id=" + encodeURIComponent(guildId);
       }
       window.location.replace(url);
     })();
   </script>
-  <meta http-equiv="refresh" content="0; url=https://discord.com/oauth2/authorize?client_id=1558397761861451806&permissions=8&scope=bot%20applications.commands">
+  <meta http-equiv="refresh" content="0; url=https://discord.com/oauth2/authorize?client_id=1558397761861451806&permissions=8&integration_type=0&scope=bot%20applications.commands">
   <style>
     * { box-sizing: border-box; }
     body {
@@ -90,7 +90,7 @@
     <div class="icon">D</div>
     <h1>Discord로 이동하는 중...</h1>
     <p>DaMoA 봇을 서버에 추가하기 위해 공식 Discord 인증 페이지로 이동하고 있습니다.</p>
-    <a class="btn" id="manual-link" href="https://discord.com/oauth2/authorize?client_id=1558397761861451806&permissions=8&scope=bot%20applications.commands">지금 바로 이동하기 →</a>
+    <a class="btn" id="manual-link" href="https://discord.com/oauth2/authorize?client_id=1558397761861451806&permissions=8&integration_type=0&scope=bot%20applications.commands">지금 바로 이동하기 →</a>
   </div>
   <script>
     const params = new URLSearchParams(window.location.search);
