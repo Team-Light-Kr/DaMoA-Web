@@ -14,6 +14,16 @@ app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'damoa-secret-key-change-in-prod')
 CORS(app, origins='*')
 
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Content-Security-Policy'] = "default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'; frame-ancestors 'none';"
+    return response
+
 # Discord OAuth2 Configuration
 DISCORD_CLIENT_ID = os.getenv('DISCORD_CLIENT_ID', '1558397761861451806')
 DISCORD_CLIENT_SECRET = os.getenv('DISCORD_CLIENT_SECRET', '')
@@ -702,16 +712,16 @@ def test_notify():
         conn, use_neon = get_db_connection()
         cursor = conn.cursor()
         if use_neon:
-            cursor.execute("SELECT channel, webhook_url FROM settings WHERE guild=%s AND source=%s AND enabled=1 LIMIT 3", (guild_id, platform))
+            cursor.execute("SELECT channel, webhook_url, target_url, target_name FROM settings WHERE guild=%s AND source=%s AND enabled=1 LIMIT 3", (guild_id, platform))
         else:
-            cursor.execute("SELECT channel, webhook_url FROM settings WHERE guild=? AND source=? AND enabled=1 LIMIT 3", (guild_id, platform))
+            cursor.execute("SELECT channel, webhook_url, target_url, target_name FROM settings WHERE guild=? AND source=? AND enabled=1 LIMIT 3", (guild_id, platform))
         rows = cursor.fetchall()
         if not rows:
             # Fallback to any configured channel in this guild
             if use_neon:
-                cursor.execute("SELECT channel, webhook_url FROM settings WHERE guild=%s AND channel IS NOT NULL AND channel > 0 LIMIT 1", (guild_id,))
+                cursor.execute("SELECT channel, webhook_url, target_url, target_name FROM settings WHERE guild=%s AND channel IS NOT NULL AND channel > 0 LIMIT 1", (guild_id,))
             else:
-                cursor.execute("SELECT channel, webhook_url FROM settings WHERE guild=? AND channel IS NOT NULL AND channel > 0 LIMIT 1", (guild_id,))
+                cursor.execute("SELECT channel, webhook_url, target_url, target_name FROM settings WHERE guild=? AND channel IS NOT NULL AND channel > 0 LIMIT 1", (guild_id,))
             rows = cursor.fetchall()
         conn.close()
     except Exception as e:
@@ -726,11 +736,22 @@ def test_notify():
     now_ts = int(time.time())
     now_kst = datetime.now(timezone(timedelta(hours=9)))
     time_str = now_kst.strftime("%Y.%m.%d %H:%M:%S")
+
+    first_target_name = None
+    if rows and len(rows) > 0:
+        r0 = rows[0]
+        if isinstance(r0, dict):
+            first_target_name = r0.get('target_name') or r0.get('target_url')
+        elif len(r0) >= 4:
+            first_target_name = r0[3] or r0[2]
+
+    author_name = first_target_name or f"{platform_name} 테스트"
+
     payload = {
         "flags": 1 << 15,
         "username": f"{platform_name} 테스트",
         "components": [{"type": 17, "accent_color": platform_color, "components": [
-            {"type": 10, "content": f"DaMoA 테스트 @DaMoA\n-# <t:{now_ts}:f> · {platform_name}"},
+            {"type": 10, "content": f"{author_name}\n-# <t:{now_ts}:f> · {platform_name}"},
             {"type": 14, "divider": True, "spacing": 1},
             {"type": 10, "content": f"**새 게시물**\n\n🔔 **{platform_name} 테스트 알림**\n\n이 메시지는 DaMoA 테스트 알림입니다.\n실제 알림이 예시처럼 디스코드에 전송됩니다."},
             {"type": 14, "divider": False, "spacing": 1},

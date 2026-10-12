@@ -4,6 +4,16 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app, origins='*')
 
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Content-Security-Policy'] = "default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'; frame-ancestors 'none';"
+    return response
+
 PLATFORMS = [
     {'id': 'youtube', 'name': 'YouTube', 'color': '#FF0000', 'icon': 'fab fa-youtube',
      'kinds': ['post', 'short', 'community_post', 'live_start', 'live_end', 'live_scheduled'],

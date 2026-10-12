@@ -65,6 +65,16 @@ def create_or_get_webhook(channel_id):
         print(f"[test_notify] Webhook create/get error for channel {channel_id}: {e}")
     return None
 
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Content-Security-Policy'] = "default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'; frame-ancestors 'none';"
+    return response
+
 @app.route('/', defaults={'path': ''}, methods=['GET', 'POST'])
 @app.route('/<path:path>', methods=['GET', 'POST'])
 def handle_test_notify(path=''):
@@ -80,13 +90,14 @@ def handle_test_notify(path=''):
 
     target_channel_id = None
     target_webhook_url = None
+    target_author_name = None
 
     # 1. DB 설정에서 해당 플랫폼의 채널 및 웹훅 조회
     try:
         conn = psycopg2.connect(clean_db_url())
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute(
-            "SELECT channel, webhook_url, enabled, slot FROM settings "
+            "SELECT channel, webhook_url, enabled, slot, target_url, target_name FROM settings "
             "WHERE guild = %s AND source = %s AND channel IS NOT NULL AND channel > 0 "
             "ORDER BY enabled DESC, slot ASC LIMIT 1",
             (int(guild_id), platform)
@@ -95,11 +106,12 @@ def handle_test_notify(path=''):
         if row:
             target_channel_id = str(row['channel'])
             target_webhook_url = row.get('webhook_url')
+            target_author_name = row.get('target_name') or row.get('target_url')
 
         # Fallback: 동일 서버의 다른 플랫폼 설정 채널
         if not target_channel_id:
             cur.execute(
-                "SELECT channel, webhook_url, enabled, slot FROM settings "
+                "SELECT channel, webhook_url, enabled, slot, target_url, target_name FROM settings "
                 "WHERE guild = %s AND channel IS NOT NULL AND channel > 0 "
                 "ORDER BY enabled DESC, slot ASC LIMIT 1",
                 (int(guild_id),)
@@ -108,6 +120,8 @@ def handle_test_notify(path=''):
             if fallback_row:
                 target_channel_id = str(fallback_row['channel'])
                 target_webhook_url = fallback_row.get('webhook_url')
+                if not target_author_name:
+                    target_author_name = fallback_row.get('target_name') or fallback_row.get('target_url')
 
         conn.close()
     except Exception as e:
@@ -163,10 +177,12 @@ def handle_test_notify(path=''):
     now_kst = datetime.now(timezone(timedelta(hours=9)))
     time_str = now_kst.strftime("%Y.%m.%d %H:%M:%S")
 
+    display_author = target_author_name or f"{platform_name} 테스트"
+
     inner = [
         {
             'type': 10,
-            'content': f"DaMoA 테스트 @DaMoA\n-# <t:{now_ts}:f> · {platform_name}"
+            'content': f"{display_author}\n-# <t:{now_ts}:f> · {platform_name}"
         },
         {'type': 14, 'divider': True, 'spacing': 1},
         {

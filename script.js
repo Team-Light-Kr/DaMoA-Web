@@ -409,7 +409,7 @@ function checkBotInviteBanner() {
 function renderStats() {
     const activeSlots = state.settings.filter(s => s.enabled).length;
     $('stat-active-slots').textContent = activeSlots;
-    $('slots-badge').textContent = `${state.settings.length} / ${MAX_SLOTS} SLOTS`;
+    $('slots-badge').textContent = `${state.settings.length}개 설정됨 (플랫폼당 최대 ${MAX_SLOTS}개)`;
 
     const isConnected = state.demo ? true : state.botGuilds.has(String(state.selectedGuild));
     const botStatus = $('stat-bot-status');
@@ -463,6 +463,7 @@ function renderSourceList() {
         const pMeta = PLATFORMS[s.platform] || { name: s.platform, icon: '' };
         const chName = s.channel_name ? `# ${s.channel_name}` : '채널 미선택';
         const targetLabel = s.target_name || s.target_url || '대상 미지정';
+        const broadcasterName = s.target_name || (s.target_url ? s.target_url.split('/').filter(Boolean).pop() : pMeta.name);
         const kindsCount = (s.kinds || []).length;
 
         return `
@@ -472,8 +473,8 @@ function renderSourceList() {
                     <img src="${pMeta.icon}" alt="${escapeHtml(pMeta.name)}">
                 </span>
                 <div class="source-info">
-                    <strong>${escapeHtml(pMeta.name)}</strong>
-                    <small title="${escapeHtml(targetLabel)}">${escapeHtml(targetLabel)}</small>
+                    <strong title="${escapeHtml(broadcasterName)}">${escapeHtml(broadcasterName)}</strong>
+                    <small title="${escapeHtml(targetLabel)}"><span style="color:#6366f1;font-weight:600;">${escapeHtml(pMeta.name)}</span> · 슬롯 #${s.slot}</small>
                 </div>
             </div>
             <div class="source-detail">
@@ -487,7 +488,7 @@ function renderSourceList() {
                 <span class="pill ${s.enabled ? '' : 'muted'}">
                     <i></i>${s.enabled ? '켜짐' : '꺼짐'}
                 </span>
-                <button class="btn-edit-slot" data-slot="${s.slot}" aria-label="설정 변경">
+                <button class="btn-edit-slot" data-slot="${s.slot}" data-platform="${s.platform}" aria-label="설정 변경">
                     <i class="fas fa-sliders-h"></i> <span>설정</span>
                 </button>
             </div>
@@ -499,7 +500,8 @@ function renderSourceList() {
     container.querySelectorAll('.btn-edit-slot').forEach(btn => {
         btn.addEventListener('click', () => {
             const slotNum = parseInt(btn.dataset.slot, 10);
-            openConfigModal(slotNum);
+            const platform = btn.dataset.platform;
+            openConfigModal(slotNum, platform);
         });
     });
 }
@@ -759,8 +761,8 @@ function updateModalForPlatform(platform, selectedKinds = null) {
     if (hintEl) hintEl.textContent = hintInfo.hint;
 }
 
-async function openConfigModal(slotNum = null) {
-    state.editingSlot = slotNum;
+async function openConfigModal(slotNum = null, platform = null) {
+    state.editingSlot = (slotNum !== null && platform) ? { slot: slotNum, platform } : null;
     const dialog = $('config-dialog');
     const titleEl = $('modal-dialog-title');
     const deleteBtn = $('btn-delete-slot');
@@ -805,15 +807,17 @@ async function openConfigModal(slotNum = null) {
         });
     }
 
-    if (slotNum !== null) {
+    if (slotNum !== null && platform) {
         // Editing existing slot
-        titleEl.textContent = `슬롯 #${slotNum} 알림 설정`;
+        const item = state.settings.find(s => s.slot === slotNum && s.platform === platform);
+        const displayName = item?.target_name || PLATFORMS[platform]?.name || platform;
+        titleEl.textContent = `[${displayName}] 알림 설정 (${PLATFORMS[platform]?.name || platform} 슬롯 #${slotNum})`;
         deleteBtn.style.display = 'inline-flex';
 
-        const item = state.settings.find(s => s.slot === slotNum);
         if (item) {
-            const p = item.platform || 'chzzk';
+            const p = item.platform || platform || 'chzzk';
             $('modal-platform').value = p;
+            $('modal-platform').disabled = true;
             $('modal-target').value = item.target_url || '';
             chSel.value = item.channel_id || '';
             roleSel.value = item.role_id || '';
@@ -825,19 +829,22 @@ async function openConfigModal(slotNum = null) {
         // Adding new slot
         titleEl.textContent = '새 알림 등록';
         deleteBtn.style.display = 'none';
+        $('modal-platform').disabled = false;
 
-        if (state.settings.length >= MAX_SLOTS) {
-            showToast(`최대 슬롯(${MAX_SLOTS}개)을 모두 사용 중입니다.`);
+        const defaultPlatform = $('modal-platform').value || 'chzzk';
+        const pCount = state.settings.filter(s => s.platform === defaultPlatform).length;
+        if (pCount >= MAX_SLOTS) {
+            showToast(`${PLATFORMS[defaultPlatform]?.name || defaultPlatform} 플랫폼은 최대 ${MAX_SLOTS}개까지 등록 가능합니다.`);
             return;
         }
 
-        $('modal-platform').value = 'chzzk';
+        $('modal-platform').value = defaultPlatform;
         $('modal-target').value = '';
         chSel.value = state.channels.length > 0 ? state.channels[0].id : '';
         roleSel.value = '';
         $('modal-custom-msg').value = '';
         $('modal-enabled').checked = true;
-        updateModalForPlatform('chzzk', null);
+        updateModalForPlatform(defaultPlatform, null);
     }
 
     dialog.showModal();
@@ -855,11 +862,9 @@ async function handleSaveSlot(e) {
     const enabled = $('modal-enabled').checked;
 
     const kinds = [];
-    // Dynamically collect all checked event inputs
     $('events-box')?.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
         kinds.push(cb.value);
     });
-    // Legacy fallback
     if (kinds.length === 0) {
         if ($('ev-live-start')?.checked) kinds.push('live_start');
         if ($('ev-live-end')?.checked) kinds.push('live_end');
@@ -882,18 +887,27 @@ async function handleSaveSlot(e) {
         return;
     }
 
+    // 플랫폼별 최대 30개 슬롯 제한 검증
+    if (!state.editingSlot) {
+        const platformCount = state.settings.filter(s => s.platform === platform).length;
+        if (platformCount >= MAX_SLOTS) {
+            errorEl.textContent = `${PLATFORMS[platform]?.name || platform} 플랫폼은 최대 ${MAX_SLOTS}개까지 등록할 수 있습니다.`;
+            errorEl.style.display = 'block';
+            return;
+        }
+    }
+
     const chObj = state.channels.find(c => c.id === channelId);
     const roleObj = state.roles.find(r => r.id === roleId);
 
-    const slotNumber = state.editingSlot !== null 
-        ? state.editingSlot 
-        : getNextAvailableSlot();
+    const slotNumber = state.editingSlot 
+        ? state.editingSlot.slot 
+        : getNextAvailableSlot(platform);
 
     const newSetting = {
         slot: slotNumber,
         platform,
         target_url: targetUrl,
-        target_name: targetUrl.split('/').pop() || platform,
         channel_id: channelId,
         channel_name: chObj ? chObj.name : '알림-채널',
         role_id: roleId,
@@ -904,14 +918,14 @@ async function handleSaveSlot(e) {
     };
 
     if (state.demo) {
-        const existingIdx = state.settings.findIndex(s => s.slot === slotNumber);
+        const existingIdx = state.settings.findIndex(s => s.slot === slotNumber && s.platform === platform);
         if (existingIdx >= 0) {
-            state.settings[existingIdx] = newSetting;
+            state.settings[existingIdx] = { ...state.settings[existingIdx], ...newSetting };
         } else {
             state.settings.push(newSetting);
         }
         localStorage.setItem('damoa_demo_settings', JSON.stringify(state.settings));
-        showToast(`슬롯 #${slotNumber} 설정이 저장되었습니다.`);
+        showToast(`${PLATFORMS[platform]?.name || platform} 슬롯 #${slotNumber} 설정이 저장되었습니다.`);
         $('config-dialog').close();
         renderSourceList();
         renderStats();
@@ -927,7 +941,7 @@ async function handleSaveSlot(e) {
                 ...newSetting
             })
         });
-        showToast(`슬롯 #${slotNumber} 설정이 Discord 봇에 적용되었습니다!`);
+        showToast(`${PLATFORMS[platform]?.name || platform} 슬롯 #${slotNumber} 설정이 저장되었습니다!`);
         $('config-dialog').close();
         await onGuildChange(state.selectedGuild);
     } catch (err) {
@@ -937,15 +951,18 @@ async function handleSaveSlot(e) {
 }
 
 async function handleDeleteSlot() {
-    if (state.editingSlot === null) return;
-    const slotNum = state.editingSlot;
+    if (!state.editingSlot) return;
+    const { slot: slotNum, platform } = state.editingSlot;
 
-    if (!confirm(`슬롯 #${slotNum} 알림을 삭제하시겠습니까?`)) return;
+    const item = state.settings.find(s => s.slot === slotNum && s.platform === platform);
+    const displayName = item?.target_name || `${PLATFORMS[platform]?.name || platform} 슬롯 #${slotNum}`;
+
+    if (!confirm(`[${displayName}] 알림 설정을 삭제하시겠습니까?`)) return;
 
     if (state.demo) {
-        state.settings = state.settings.filter(s => s.slot !== slotNum);
+        state.settings = state.settings.filter(s => !(s.slot === slotNum && s.platform === platform));
         localStorage.setItem('damoa_demo_settings', JSON.stringify(state.settings));
-        showToast(`슬롯 #${slotNum} 알림이 삭제되었습니다.`);
+        showToast(`알림이 삭제되었습니다.`);
         $('config-dialog').close();
         renderSourceList();
         renderStats();
@@ -953,10 +970,10 @@ async function handleDeleteSlot() {
     }
 
     try {
-        await apiFetch(`/api/settings/${slotNum}?guild_id=${state.selectedGuild}`, {
+        await apiFetch(`/api/settings?guild_id=${state.selectedGuild}&platform=${platform}&slot=${slotNum}`, {
             method: 'DELETE'
         });
-        showToast(`슬롯 #${slotNum} 알림이 삭제되었습니다.`);
+        showToast(`[${displayName}] 알림이 정상적으로 삭제되었습니다.`);
         $('config-dialog').close();
         await onGuildChange(state.selectedGuild);
     } catch (err) {
@@ -964,12 +981,12 @@ async function handleDeleteSlot() {
     }
 }
 
-function getNextAvailableSlot() {
-    const used = new Set(state.settings.map(s => s.slot));
+function getNextAvailableSlot(platform) {
+    const used = new Set(state.settings.filter(s => s.platform === platform).map(s => s.slot));
     for (let i = 1; i <= MAX_SLOTS; i++) {
         if (!used.has(i)) return i;
     }
-    return state.settings.length + 1;
+    return 1;
 }
 
 // ── Event Listeners ─────────────────────────────────────────
