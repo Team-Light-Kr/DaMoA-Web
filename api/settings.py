@@ -73,16 +73,42 @@ def resolve_target_name(source, target_url):
             if m:
                 return m.group(1).strip()
         elif source == 'spotify':
-            # Clean UTM params and try oEmbed
-            clean_url = re.sub(r'[?&](?:si|utm_source|utm_medium|utm_campaign)=[^&]*', '', target_url)
-            clean_url = clean_url.rstrip('?&')
-            r = requests.get(
-                f'https://open.spotify.com/oembed?url={clean_url}',
-                headers={'User-Agent': 'DaMoABot/1.0.0'},
-                timeout=4
-            )
-            if r.status_code == 200:
-                return r.json().get('title')
+            clean_url = re.sub(r'[?&](?:si|utm_source|utm_medium|utm_campaign)=[^&]*', '', target_url).rstrip('?&')
+            # 1. Try Spotify official oEmbed API
+            try:
+                r = requests.get(
+                    f'https://open.spotify.com/oembed?url={clean_url}',
+                    headers={'User-Agent': 'DaMoABot/1.0.0'},
+                    timeout=4
+                )
+                if r.status_code == 200:
+                    title = r.json().get('title')
+                    if title:
+                        return title.strip()
+            except Exception:
+                pass
+
+            # 2. Try Spotify embed page NEXT_DATA
+            m = re.search(r'spotify\.com/(artist|album|playlist|track|show|episode)/([a-zA-Z0-9]+)', clean_url)
+            if m:
+                etype, eid = m.group(1), m.group(2)
+                try:
+                    er = requests.get(
+                        f'https://open.spotify.com/embed/{etype}/{eid}',
+                        headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'},
+                        timeout=4
+                    )
+                    if er.status_code == 200:
+                        jm = re.search(r'<script id="__NEXT_DATA__" type="application/json">(.+?)</script>', er.text, re.DOTALL)
+                        if jm:
+                            edata = json.loads(jm.group(1))
+                            ent = edata.get('props', {}).get('pageProps', {}).get('state', {}).get('data', {}).get('entity', {})
+                            ename = ent.get('name') or ent.get('title')
+                            if ename:
+                                return ename.strip()
+                except Exception:
+                    pass
+                return f"Spotify {etype.capitalize()} ({eid[:8]})"
     except Exception:
         pass
     return None

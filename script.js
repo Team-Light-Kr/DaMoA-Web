@@ -546,9 +546,21 @@ function renderSourceList() {
 
     container.innerHTML = items.map(s => {
         const pMeta = PLATFORMS[s.platform] || { name: s.platform, icon: '' };
-        const chName = s.channel_name ? `# ${s.channel_name}` : '채널 미선택';
+        const chObj = (state.channels || []).find(c => String(c.id) === String(s.channel_id));
+        const roleObj = (state.roles || []).find(r => String(r.id) === String(s.role_id));
+        const resolvedChName = s.channel_name || chObj?.name;
+        const chName = resolvedChName ? `# ${resolvedChName}` : (s.channel_id ? `# 채널 (${s.channel_id})` : '채널 미선택');
+        const resolvedRoleName = s.role_name || roleObj?.name;
         const targetLabel = s.target_name || s.target_url || '대상 미지정';
-        const broadcasterName = s.target_name || (s.target_url ? s.target_url.split('/').filter(Boolean).pop() : pMeta.name);
+        let broadcasterName = s.target_name;
+        if (!broadcasterName) {
+            if (s.target_url) {
+                const cleanUrl = s.target_url.split('?')[0].replace(/\/+$/, '');
+                broadcasterName = cleanUrl.split('/').pop() || pMeta.name;
+            } else {
+                broadcasterName = pMeta.name;
+            }
+        }
         const kindsCount = (s.kinds || []).length;
 
         return `
@@ -567,7 +579,7 @@ function renderSourceList() {
                 <span class="source-health">
                     <i class="fas fa-check" style="font-size:10px;"></i> ${kindsCount}개 이벤트 활성
                 </span>
-                ${s.role_name ? `<small style="color:#7b4eff;">@ ${escapeHtml(s.role_name)} 멘션</small>` : ''}
+                ${resolvedRoleName ? `<small style="color:#7b4eff;">@ ${escapeHtml(resolvedRoleName)} 멘션</small>` : ''}
             </div>
             <div class="source-state">
                 <span class="pill ${s.enabled ? '' : 'muted'}">
@@ -707,6 +719,18 @@ async function onGuildChange(guildId) {
         state.channels = chRes.channels || [];
         state.roles = roleRes.roles || [];
         state.settings = setRes.settings || [];
+
+        // Match channel_name and role_name from Discord live lists
+        state.settings.forEach(s => {
+            if (s.channel_id) {
+                const ch = state.channels.find(c => String(c.id) === String(s.channel_id));
+                if (ch) s.channel_name = ch.name;
+            }
+            if (s.role_id) {
+                const ro = state.roles.find(r => String(r.id) === String(s.role_id));
+                if (ro) s.role_name = ro.name;
+            }
+        });
 
         // Real-time synchronization: If channels or settings exist, bot is definitely connected!
         if (state.channels.length > 0 || state.settings.length > 0) {
@@ -989,7 +1013,7 @@ async function openConfigModal(slotNum = null, platform = null) {
     if (btnList) btnList.innerHTML = '';
 
     // If channels or roles are empty, fetch live
-    if (state.selectedGuild && (!state.channels || state.channels.length === 0)) {
+    if (state.selectedGuild && (!state.channels || state.channels.length === 0 || !state.roles || state.roles.length === 0)) {
         try {
             const [ch, ro] = await Promise.all([
                 apiFetch(`/api/channels?guild_id=${state.selectedGuild}`).catch(() => ({ channels: [] })),
@@ -1006,7 +1030,7 @@ async function openConfigModal(slotNum = null, platform = null) {
         chSel.innerHTML = '<option value="">채널을 선택하세요</option>';
         state.channels.forEach(c => {
             const opt = document.createElement('option');
-            opt.value = c.id;
+            opt.value = String(c.id);
             opt.textContent = `# ${c.name}`;
             chSel.appendChild(opt);
         });
@@ -1020,7 +1044,7 @@ async function openConfigModal(slotNum = null, platform = null) {
     if (state.roles) {
         state.roles.forEach(r => {
             const opt = document.createElement('option');
-            opt.value = r.id;
+            opt.value = String(r.id);
             opt.textContent = `@ ${r.name}`;
             roleSel.appendChild(opt);
         });
@@ -1042,19 +1066,22 @@ async function openConfigModal(slotNum = null, platform = null) {
             const chIdStr = item.channel_id ? String(item.channel_id) : '';
             const roleIdStr = item.role_id ? String(item.role_id) : '';
             chSel.value = chIdStr;
-            // Verify that the channel option exists; if not, it means channels weren't loaded yet
-            if (chIdStr && !chSel.querySelector(`option[value="${chIdStr}"]`)) {
+            // Verify that the channel option was successfully selected
+            if (chIdStr && chSel.value !== chIdStr) {
+                const chObj = (state.channels || []).find(c => String(c.id) === chIdStr);
                 const opt = document.createElement('option');
                 opt.value = chIdStr;
-                opt.textContent = item.channel_name ? `# ${item.channel_name}` : `# ${chIdStr}`;
+                opt.textContent = chObj ? `# ${chObj.name}` : (item.channel_name ? `# ${item.channel_name}` : `# ${chIdStr}`);
                 chSel.appendChild(opt);
                 chSel.value = chIdStr;
             }
             roleSel.value = roleIdStr;
-            if (roleIdStr && !roleSel.querySelector(`option[value="${roleIdStr}"]`)) {
+            // Verify that the role option was successfully selected
+            if (roleIdStr && roleSel.value !== roleIdStr) {
+                const roleObj = (state.roles || []).find(r => String(r.id) === roleIdStr);
                 const opt = document.createElement('option');
                 opt.value = roleIdStr;
-                opt.textContent = item.role_name ? `@ ${item.role_name}` : `@ ${roleIdStr}`;
+                opt.textContent = roleObj ? `@ ${roleObj.name}` : (item.role_name ? `@ ${item.role_name}` : `@ ${roleIdStr}`);
                 roleSel.appendChild(opt);
                 roleSel.value = roleIdStr;
             }
