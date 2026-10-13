@@ -9,36 +9,52 @@ const MAX_SLOTS = 30;
 
 // Official Platform Metadata & Image Icons
 const PLATFORMS = {
-    youtube: {
-        name: 'YouTube',
-        icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT35KBL5ifTR1qh-c7-UZJc5bGYTI2kXnyaGDGnZmeuiA&s=10'
-    },
-    chzzk: {
-        name: '치지직',
-        icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTL5o8WMTcizruTWGFYaAhK61h-fAJWIeRGGI5g8NC9dA&s=10'
+    instagram: {
+        name: '인스타그램',
+        en: 'Instagram',
+        color: '#E4405F',
+        icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR1mEo2-NnFTlPRLM13eEJf-qv66rqJUPRu-bAneh4Ncg&s=10'
     },
     twitter: {
-        name: 'X (Twitter)',
+        name: '트위터',
+        en: 'X / Twitter',
+        color: '#1DA1F2',
         icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFbqet-sK8lwsz1nprOmg_E1x993Wvuliu2MmbCwVcOw&s=10'
-    },
-    cime: {
-        name: '씨미',
-        icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRwoAs9YU5vS94EgfUPeMLdzq7EQLy7SlpRNK0i_6J8Bg&s=10'
-    },
-    instagram: {
-        name: 'Instagram',
-        icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR1mEo2-NnFTlPRLM13eEJf-qv66rqJUPRu-bAneh4Ncg&s=10'
     },
     spotify: {
         name: '스포티파이',
+        en: 'Spotify',
+        color: '#1DB954',
         icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRgoYNyRiH1MSuh1ZL_KreEfYiturY4NYE4RCGB4WhaWw&s=10'
+    },
+    cime: {
+        name: '씨미',
+        en: '씨미',
+        color: '#AA70FF',
+        icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRwoAs9YU5vS94EgfUPeMLdzq7EQLy7SlpRNK0i_6J8Bg&s=10'
+    },
+    chzzk: {
+        name: '치지직',
+        en: '치지직',
+        color: '#00FFA3',
+        icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTL5o8WMTcizruTWGFYaAhK61h-fAJWIeRGGI5g8NC9dA&s=10'
+    },
+    youtube: {
+        name: '유튜브',
+        en: 'YouTube',
+        color: '#FF0000',
+        icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT35KBL5ifTR1qh-c7-UZJc5bGYTI2kXnyaGDGnZmeuiA&s=10'
     },
     naver_cafe: {
         name: '네이버 카페',
+        en: '네이버 카페',
+        color: '#03C75A',
         icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSxadZQFctX2N4f0GoOvuwyhOZSZY-ekXKG3f01L6-Ugw&s=10'
     },
     soop: {
         name: 'SOOP',
+        en: 'SOOP',
+        color: '#0C8CE9',
         icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTTET5t-HJitRYOD1ESgF4E8MwfCTcwztdUaGdP6a7Wdg&s=10'
     },
 };
@@ -408,23 +424,92 @@ function checkBotInviteBanner() {
 
 function renderStats() {
     const activeSlots = state.settings.filter(s => s.enabled).length;
-    $('stat-active-slots').textContent = activeSlots;
-    $('slots-badge').textContent = `${state.settings.length}개 설정됨 (플랫폼당 최대 ${MAX_SLOTS}개)`;
+    if ($('stat-active-slots')) $('stat-active-slots').textContent = activeSlots;
+    if ($('slots-badge')) $('slots-badge').textContent = `${state.settings.length}개 설정됨 (플랫폼당 30개, 총 240개 가능)`;
 
     const isConnected = state.demo ? true : state.botGuilds.has(String(state.selectedGuild));
     const botStatus = $('stat-bot-status');
     const botNote = $('stat-bot-note');
-    if (isConnected) {
-        botStatus.textContent = '연결됨';
-        botStatus.style.color = '#3b827e';
-        botNote.textContent = '정상 작동 중';
-    } else {
-        botStatus.textContent = '초대 필요';
-        botStatus.style.color = '#c2410c';
-        botNote.textContent = '서버에 봇을 추가하세요';
+    if (botStatus && botNote) {
+        if (isConnected) {
+            botStatus.textContent = '연결됨';
+            botStatus.style.color = '#3b827e';
+            botNote.textContent = '정상 작동 중';
+        } else {
+            botStatus.textContent = '초대 필요';
+            botStatus.style.color = '#c2410c';
+            botNote.textContent = '서버에 봇을 추가하세요';
+        }
     }
 
-    $('stat-delivered').textContent = state.demo ? '128' : '0';
+    if ($('stat-delivered')) $('stat-delivered').textContent = state.demo ? '128' : '0';
+
+    // Render Platform Category Grid (Image 2 - Discord /시작하기 style)
+    renderPlatformCardsGrid();
+}
+
+function renderPlatformCardsGrid() {
+    const grid = $('platform-cards-grid');
+    if (!grid) return;
+
+    const platformsOrder = ['instagram', 'twitter', 'spotify', 'cime', 'chzzk', 'youtube', 'naver_cafe', 'soop'];
+    grid.innerHTML = platformsOrder.map(p => {
+        const meta = PLATFORMS[p] || { name: p, en: p, icon: '' };
+        const count = (state.settings || []).filter(s => s.platform === p).length;
+        const isFull = count >= MAX_SLOTS;
+
+        return `
+        <article class="platform-card" data-platform="${p}">
+            <div class="platform-card-head">
+                <span class="platform-card-icon">
+                    <img src="${meta.icon}" alt="${escapeHtml(meta.name)}">
+                </span>
+                <div class="platform-card-titles">
+                    <span class="platform-card-name">${escapeHtml(meta.name)}</span>
+                    <span class="platform-card-en">${escapeHtml(meta.en)}</span>
+                </div>
+            </div>
+            <div class="platform-card-count">
+                알림 대상 <span class="badge ${isFull ? 'full' : ''}">${count} / ${MAX_SLOTS}</span> 개
+            </div>
+            <div class="platform-card-actions">
+                <button class="btn btn-card-add" data-platform="${p}" ${isFull ? 'disabled' : ''}>
+                    <i class="fas fa-plus"></i> 알림 추가
+                </button>
+                <button class="btn btn-card-manage" data-platform="${p}">
+                    <i class="fas fa-sliders-h"></i> 알림 관리
+                </button>
+            </div>
+        </article>
+        `;
+    }).join('');
+
+    const totalBadge = $('platform-total-slots-badge');
+    if (totalBadge) totalBadge.textContent = `${(state.settings || []).length} / 240`;
+
+    grid.querySelectorAll('.btn-card-add').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const platform = btn.dataset.platform;
+            openConfigModal(null, platform);
+        });
+    });
+
+    grid.querySelectorAll('.btn-card-manage').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const platform = btn.dataset.platform;
+            state.filter = platform;
+            const searchInput = $('input-source-search');
+            if (searchInput) searchInput.value = PLATFORMS[platform]?.name || platform;
+            state.searchQuery = PLATFORMS[platform]?.name || platform;
+            renderSourceList();
+            const container = $('source-list-container');
+            if (container) {
+                container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+    });
 }
 
 function renderSourceList() {
@@ -743,6 +828,135 @@ const PLATFORM_URL_HINTS = {
     },
 };
 
+function detectPlatformFromUrl(url) {
+    if (!url) return null;
+    const lower = url.toLowerCase().trim();
+    if (lower.includes('youtube.com') || lower.includes('youtu.be')) return 'youtube';
+    if (lower.includes('chzzk.naver.com')) return 'chzzk';
+    if (lower.includes('sooplive.com') || lower.includes('afreecatv.com')) return 'soop';
+    if (lower.includes('ci.me')) return 'cime';
+    if (lower.includes('twitter.com') || lower.includes('x.com')) return 'twitter';
+    if (lower.includes('instagram.com')) return 'instagram';
+    if (lower.includes('spotify.com')) return 'spotify';
+    if (lower.includes('cafe.naver.com')) return 'naver_cafe';
+    return null;
+}
+
+function updateWysiwygPreview() {
+    const platform = $('modal-platform')?.value || 'chzzk';
+    const targetUrl = $('modal-target')?.value || '';
+    const roleId = $('modal-role')?.value || '';
+    const customMsg = $('modal-custom-msg')?.value || '';
+    const pMeta = PLATFORMS[platform] || { name: platform, color: '#6366f1', icon: '' };
+
+    // Accent color on container
+    const v2Container = $('prev-v2-container');
+    if (v2Container) {
+        v2Container.style.borderLeftColor = pMeta.color || '#6366f1';
+    }
+
+    // Platform sub & icon
+    const platSub = $('prev-platform-sub');
+    if (platSub) {
+        platSub.textContent = `-# 오늘 오후 5:00 · ${pMeta.name}`;
+    }
+
+    // Avatar image
+    const prevAvatarImg = $('prev-avatar-img');
+    if (prevAvatarImg) prevAvatarImg.src = pMeta.icon;
+    const prevAuthorImg = $('prev-author-img');
+    if (prevAuthorImg) prevAuthorImg.src = pMeta.icon;
+
+    // Creator / Author name
+    const authorNameEl = $('prev-author-name');
+    let creatorName = pMeta.name;
+    if (targetUrl) {
+        const parts = targetUrl.split('/').filter(Boolean);
+        const lastPart = parts.pop();
+        if (lastPart) {
+            creatorName = lastPart.replace(/^@/, '');
+        }
+    }
+    if (authorNameEl) authorNameEl.textContent = creatorName;
+
+    // Mention Row
+    const mentionRow = $('prev-mention-row');
+    const roleTag = $('prev-mention-role');
+    const customMsgEl = $('prev-mention-custom-msg');
+    const roleObj = state.roles.find(r => r.id === roleId);
+
+    if (roleObj || customMsg) {
+        if (mentionRow) mentionRow.style.display = 'block';
+        if (roleTag) {
+            roleTag.textContent = roleObj ? `@${roleObj.name}` : '';
+            roleTag.style.display = roleObj ? 'inline-block' : 'none';
+        }
+        if (customMsgEl) customMsgEl.textContent = customMsg;
+    } else {
+        if (mentionRow) mentionRow.style.display = 'none';
+    }
+
+    // Action Buttons Row (Feature 3)
+    const btnRow = $('prev-buttons-row');
+    if (btnRow) {
+        let buttonsHtml = `
+            <a class="discord-link-btn" href="#" onclick="return false;">
+                <i class="fas fa-external-link-alt" style="font-size:11px;"></i> 원문 보기
+            </a>
+        `;
+        document.querySelectorAll('.custom-btn-row').forEach(row => {
+            const labelInput = row.querySelector('.custom-btn-label');
+            if (labelInput && labelInput.value.trim()) {
+                buttonsHtml += `
+                    <a class="discord-link-btn" href="#" onclick="return false;" style="background:#5865f2;">
+                        <i class="fas fa-link" style="font-size:11px;"></i> ${escapeHtml(labelInput.value.trim())}
+                    </a>
+                `;
+            }
+        });
+        btnRow.innerHTML = buttonsHtml;
+    }
+
+    // Footer timestamp
+    const footerEl = $('prev-footer-text');
+    if (footerEl) {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        const ss = String(now.getSeconds()).padStart(2, '0');
+        footerEl.textContent = `${pMeta.name} | ${y}.${m}.${d} ${hh}:${mm}:${ss}`;
+    }
+}
+
+function addCustomActionBtnRow(label = '', url = '') {
+    const list = $('custom-buttons-list');
+    if (!list) return;
+    const currentCount = list.querySelectorAll('.custom-btn-row').length;
+    if (currentCount >= 5) {
+        showToast('사용자 정의 액션 버튼은 최대 5개까지 추가할 수 있습니다.');
+        return;
+    }
+    const row = document.createElement('div');
+    row.className = 'custom-btn-row';
+    row.innerHTML = `
+        <input type="text" class="custom-btn-label" placeholder="버튼 라벨 (예: 팬카페)" value="${escapeHtml(label)}">
+        <input type="url" class="custom-btn-url" placeholder="https://..." value="${escapeHtml(url)}">
+        <button type="button" class="btn-remove-custom-action" aria-label="버튼 삭제">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    row.querySelectorAll('input').forEach(inp => inp.addEventListener('input', updateWysiwygPreview));
+    row.querySelector('.btn-remove-custom-action').addEventListener('click', () => {
+        row.remove();
+        updateWysiwygPreview();
+    });
+    list.appendChild(row);
+    updateWysiwygPreview();
+}
+
 function updateModalForPlatform(platform, selectedKinds = null) {
     const box = $('events-box');
     const targetEl = $('modal-target');
@@ -759,6 +973,7 @@ function updateModalForPlatform(platform, selectedKinds = null) {
     const hintInfo = PLATFORM_URL_HINTS[platform] || { placeholder: 'URL 또는 ID 입력', hint: '추적할 URL을 입력하세요.' };
     if (targetEl) targetEl.placeholder = hintInfo.placeholder;
     if (hintEl) hintEl.textContent = hintInfo.hint;
+    updateWysiwygPreview();
 }
 
 async function openConfigModal(slotNum = null, platform = null) {
@@ -768,6 +983,10 @@ async function openConfigModal(slotNum = null, platform = null) {
     const deleteBtn = $('btn-delete-slot');
     const errorEl = $('modal-form-error');
     errorEl.style.display = 'none';
+
+    // Reset custom buttons list
+    const btnList = $('custom-buttons-list');
+    if (btnList) btnList.innerHTML = '';
 
     // If channels or roles are empty, fetch live
     if (state.selectedGuild && (!state.channels || state.channels.length === 0)) {
@@ -823,15 +1042,24 @@ async function openConfigModal(slotNum = null, platform = null) {
             roleSel.value = item.role_id || '';
             $('modal-custom-msg').value = item.custom_message || '';
             $('modal-enabled').checked = !!item.enabled;
+            if ($('modal-exclude-membership')) $('modal-exclude-membership').checked = !!item.exclude_membership;
+            if ($('modal-drops-active')) $('modal-drops-active').checked = item.drops_active !== false;
+
+            // Load custom action buttons if present
+            if (item.buttons && Array.isArray(item.buttons)) {
+                item.buttons.forEach(b => addCustomActionBtnRow(b.label, b.url));
+            }
+
             updateModalForPlatform(p, item.kinds || null);
         }
     } else {
         // Adding new slot
-        titleEl.textContent = '새 알림 등록';
+        const defaultPlatform = platform || $('modal-platform').value || 'chzzk';
+        const nextSlot = getNextAvailableSlot(defaultPlatform);
+        titleEl.textContent = `새 ${PLATFORMS[defaultPlatform]?.name || defaultPlatform} 알림 등록 (슬롯 #${nextSlot} / ${MAX_SLOTS})`;
         deleteBtn.style.display = 'none';
         $('modal-platform').disabled = false;
 
-        const defaultPlatform = $('modal-platform').value || 'chzzk';
         const pCount = state.settings.filter(s => s.platform === defaultPlatform).length;
         if (pCount >= MAX_SLOTS) {
             showToast(`${PLATFORMS[defaultPlatform]?.name || defaultPlatform} 플랫폼은 최대 ${MAX_SLOTS}개까지 등록 가능합니다.`);
@@ -847,8 +1075,10 @@ async function openConfigModal(slotNum = null, platform = null) {
         updateModalForPlatform(defaultPlatform, null);
     }
 
+    updateWysiwygPreview();
     dialog.showModal();
 }
+
 async function handleSaveSlot(e) {
     e.preventDefault();
     const errorEl = $('modal-form-error');
@@ -860,6 +1090,18 @@ async function handleSaveSlot(e) {
     const roleId = $('modal-role').value || null;
     const customMessage = $('modal-custom-msg').value.trim() || null;
     const enabled = $('modal-enabled').checked;
+    const excludeMembership = $('modal-exclude-membership')?.checked || false;
+    const dropsActive = $('modal-drops-active')?.checked || false;
+
+    // Collect custom action buttons
+    const customButtons = [];
+    document.querySelectorAll('.custom-btn-row').forEach(row => {
+        const label = row.querySelector('.custom-btn-label')?.value.trim();
+        const url = row.querySelector('.custom-btn-url')?.value.trim();
+        if (label && url) {
+            customButtons.push({ label, url });
+        }
+    });
 
     const kinds = [];
     $('events-box')?.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
@@ -915,6 +1157,9 @@ async function handleSaveSlot(e) {
         enabled,
         kinds,
         custom_message: customMessage,
+        buttons: customButtons,
+        exclude_membership: excludeMembership,
+        drops_active: dropsActive,
     };
 
     if (state.demo) {
@@ -1130,6 +1375,33 @@ function setupEventListeners() {
 
     // Slot Add button
     $('btn-add-slot')?.addEventListener('click', () => openConfigModal(null));
+
+    // Intelligent Platform URL Auto-Detection & WYSIWYG Live Update (Features 1 & 150)
+    $('modal-target')?.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        if (!state.editingSlot) {
+            const detected = detectPlatformFromUrl(val);
+            if (detected && detected !== $('modal-platform').value) {
+                $('modal-platform').value = detected;
+                updateModalForPlatform(detected);
+                showToast(`💡 ${PLATFORMS[detected]?.name || detected} 플랫폼이 자동 감지되었습니다.`);
+            }
+        }
+        updateWysiwygPreview();
+    });
+
+    $('modal-platform')?.addEventListener('change', (e) => {
+        updateModalForPlatform(e.target.value);
+        updateWysiwygPreview();
+    });
+
+    $('modal-role')?.addEventListener('change', updateWysiwygPreview);
+    $('modal-custom-msg')?.addEventListener('input', updateWysiwygPreview);
+
+    // Custom action link button addition (Feature 3)
+    $('btn-add-action-link')?.addEventListener('click', () => {
+        addCustomActionBtnRow();
+    });
 
     // Modal dialog controls
     $('btn-close-dialog')?.addEventListener('click', () => $('config-dialog').close());

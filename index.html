@@ -436,14 +436,57 @@
                             </article>
                             <article class="stat">
                                 <div class="stat-label">켜진 알림 <i class="fas fa-bell"></i></div>
-                                <strong class="stat-value"><span id="stat-active-slots">0</span> <span style="font-size:14px;font-weight:400;color:#939ab1;">/ 30</span></strong>
-                                <small>설정한 채널로 소식을 전달해요</small>
+                                <strong class="stat-value"><span id="stat-active-slots">0</span> <span style="font-size:14px;font-weight:400;color:#939ab1;">/ 240</span></strong>
+                                <small>플랫폼당 30개씩 자유롭게 설정</small>
                             </article>
                             <article class="stat">
                                 <div class="stat-label">누적 전송 <i class="fas fa-check"></i></div>
                                 <strong class="stat-value" id="stat-delivered">0</strong>
                                 <small>발견된 소식 전송 횟수</small>
                             </article>
+                        </div>
+
+                        <!-- Platform Category Grid (Image 2 - Discord /시작하기 Style) -->
+                        <section class="platform-settings-section" style="margin-top:28px;margin-bottom:28px;">
+                            <div class="platform-section-header">
+                                <div style="display:flex;align-items:center;gap:12px;">
+                                    <div class="brand-logo-img" style="width:36px;height:36px;font-size:15px;background:#6366f1;color:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;">D</div>
+                                    <div>
+                                        <h2 style="font-size:18px;font-weight:700;color:var(--ink);margin:0;">DaMoA 알림 설정</h2>
+                                        <p style="font-size:13px;color:var(--muted);margin-top:2px;">플랫폼별로 최대 30개의 독립 알림 대상을 등록할 수 있습니다.</p>
+                                    </div>
+                                </div>
+                                <div class="platform-card-count">
+                                    총 사용 슬롯: <span class="badge" id="platform-total-slots-badge">0 / 240</span>
+                                </div>
+                            </div>
+                            <div class="platform-cards-grid" id="platform-cards-grid">
+                                <!-- Dynamically populated by script.js -->
+                            </div>
+                        </section>
+
+                        <!-- Subscriber Trendline & Peak Viewers Analytics (Features 41 & 42) -->
+                        <div class="analytics-cards-row" style="margin-bottom:28px;">
+                            <div class="analytics-card">
+                                <div class="analytics-card-title">
+                                    <span>구독자 및 팔로워 변동 추세선</span>
+                                    <small style="color:#10b981;font-weight:600;"><i class="fas fa-arrow-up"></i> 실시간 상승 곡선</small>
+                                </div>
+                                <svg class="analytics-sparkline-svg" viewBox="0 0 300 50">
+                                    <path d="M0,40 Q40,35 80,30 T160,20 T240,15 T300,8" fill="none" stroke="#6366f1" stroke-width="3" stroke-linecap="round"/>
+                                    <path d="M0,40 Q40,35 80,30 T160,20 T240,15 T300,8 L300,50 L0,50 Z" fill="rgba(99,102,241,0.08)"/>
+                                </svg>
+                            </div>
+                            <div class="analytics-card">
+                                <div class="analytics-card-title">
+                                    <span>최고 시청자 수(Peak Viewers) 타임라인</span>
+                                    <small style="color:#6366f1;font-weight:600;">방송 회차별 동시 시청자 피크</small>
+                                </div>
+                                <svg class="analytics-sparkline-svg" viewBox="0 0 300 50">
+                                    <path d="M0,45 Q50,42 100,25 T200,8 T260,30 T300,35" fill="none" stroke="#00ffa3" stroke-width="3" stroke-linecap="round"/>
+                                    <path d="M0,45 Q50,42 100,25 T200,8 T260,30 T300,35 L300,50 L0,50 Z" fill="rgba(0,255,163,0.08)"/>
+                                </svg>
+                            </div>
                         </div>
 
                         <!-- Dashboard Main 2-column Grid -->
@@ -535,8 +578,8 @@
             </div>
         </div>
 
-        <!-- 3. CONFIG MODAL DIALOG (Add / Edit Notification Slot) -->
-        <dialog class="dialog" id="config-dialog">
+        <!-- 3. CONFIG MODAL DIALOG (Add / Edit Notification Slot & WYSIWYG Preview) -->
+        <dialog class="dialog dialog-wide" id="config-dialog">
             <form id="config-form">
                 <div class="dialog-head">
                     <h2 id="modal-dialog-title">알림 설정</h2>
@@ -545,72 +588,169 @@
                     </button>
                 </div>
                 <div class="dialog-body">
-                    <!-- Platform select -->
-                    <label class="field">
-                        플랫폼 선택
-                        <select id="modal-platform" required>
-                            <option value="chzzk">치지직 (CHZZK)</option>
-                            <option value="soop">SOOP (아프리카TV)</option>
-                            <option value="youtube">YouTube</option>
-                            <option value="cime">씨미 (ci.me)</option>
-                            <option value="twitter">X (Twitter)</option>
-                            <option value="instagram">Instagram</option>
-                            <option value="spotify">Spotify</option>
-                            <option value="naver_cafe">네이버 카페</option>
-                        </select>
-                    </label>
+                    <div class="modal-grid-2col">
+                        <!-- Left Column: Form Controls -->
+                        <div class="modal-controls-col" style="display:flex;flex-direction:column;gap:14px;">
+                            <!-- Platform select -->
+                            <label class="field">
+                                플랫폼 선택
+                                <select id="modal-platform" required>
+                                    <option value="chzzk">치지직 (CHZZK)</option>
+                                    <option value="soop">SOOP (아프리카TV)</option>
+                                    <option value="youtube">YouTube</option>
+                                    <option value="cime">씨미 (ci.me)</option>
+                                    <option value="twitter">X (Twitter)</option>
+                                    <option value="instagram">Instagram</option>
+                                    <option value="spotify">Spotify</option>
+                                    <option value="naver_cafe">네이버 카페</option>
+                                </select>
+                            </label>
 
-                    <!-- Channel ID or Target URL -->
-                    <label class="field">
-                        추적 대상 (URL 또는 채널 ID)
-                        <input type="text" id="modal-target" placeholder="예: https://chzzk.naver.com/4b7... 또는 고유 ID" required>
-                        <small id="modal-target-hint">스트리머 방송국 또는 채널 URL을 붙여넣으세요.</small>
-                    </label>
+                            <!-- Channel ID or Target URL with Instant Auto-Detection (Feature 150) -->
+                            <label class="field">
+                                추적 대상 (URL 또는 채널 ID)
+                                <input type="text" id="modal-target" placeholder="예: https://youtube.com/@채널 또는 URL 붙여넣기" required>
+                                <small id="modal-target-hint">URL을 붙여넣으면 플랫폼이 자동으로 감지됩니다.</small>
+                            </label>
 
-                    <!-- Discord Channel select -->
-                    <label class="field">
-                        알림 전송 채널
-                        <select id="modal-channel" required>
-                            <option value="">채널을 선택하세요</option>
-                        </select>
-                        <small>DaMoA 봇이 메시지를 보낼 Discord 채널을 선택하세요.</small>
-                    </label>
+                            <!-- Discord Channel select -->
+                            <label class="field">
+                                알림 전송 채널
+                                <select id="modal-channel" required>
+                                    <option value="">채널을 선택하세요</option>
+                                </select>
+                                <small>DaMoA 봇이 메시지를 보낼 Discord 채널을 선택하세요.</small>
+                            </label>
 
-                    <!-- Mention Role select -->
-                    <label class="field">
-                        멘션할 역할 (선택 사항)
-                        <select id="modal-role">
-                            <option value="">멘션하지 않음</option>
-                        </select>
-                        <small>알림 전송 시 호출할 서버 역할을 지정합니다.</small>
-                    </label>
+                            <!-- Mention Role select -->
+                            <label class="field">
+                                멘션할 역할 (선택 사항)
+                                <select id="modal-role">
+                                    <option value="">멘션하지 않음</option>
+                                </select>
+                                <small>알림 전송 시 호출할 서버 역할을 지정합니다.</small>
+                            </label>
 
-                    <!-- Event kinds checkboxes (동적으로 플랫폼에 따라 변경됨) -->
-                    <div class="field">
-                        전송받을 이벤트 선택
-                        <div class="events-box" id="events-box">
-                            <label><input type="checkbox" id="ev-live-start" value="live_start" checked> 라이브 시작 (Live Start)</label>
-                            <label><input type="checkbox" id="ev-live-end" value="live_end" checked> 방송 종료 (Live End)</label>
-                            <label><input type="checkbox" id="ev-live-scheduled" value="live_scheduled" checked> 방송 예약 (Scheduled)</label>
+                            <!-- Event kinds checkboxes -->
+                            <div class="field">
+                                전송받을 이벤트 선택
+                                <div class="events-box" id="events-box">
+                                    <label><input type="checkbox" id="ev-live-start" value="live_start" checked> 라이브 시작 (Live Start)</label>
+                                    <label><input type="checkbox" id="ev-live-end" value="live_end" checked> 방송 종료 (Live End)</label>
+                                    <label><input type="checkbox" id="ev-live-scheduled" value="live_scheduled" checked> 방송 예약 (Scheduled)</label>
+                                </div>
+                                <small>수신을 원하는 방송 이벤트만 체크하세요.</small>
+                            </div>
+
+                            <!-- Custom Message -->
+                            <label class="field">
+                                맞춤 메시지 (선택 사항)
+                                <input type="text" id="modal-custom-msg" placeholder="예: 지금 바로 방송 보러 오세요! ✨">
+                            </label>
+
+                            <!-- Custom Action Buttons Builder (Feature 3 - up to 5 buttons) -->
+                            <div class="field">
+                                <div style="display:flex;justify-content:space-between;align-items:center;">
+                                    <span>사용자 정의 링크 액션 버튼 (최대 5개)</span>
+                                    <button type="button" class="btn small" id="btn-add-action-link" style="padding:2px 8px;font-size:11px;">
+                                        <i class="fas fa-plus"></i> 버튼 추가
+                                    </button>
+                                </div>
+                                <div class="custom-buttons-list" id="custom-buttons-list">
+                                    <!-- Dynamic custom button rows -->
+                                </div>
+                                <small>'팬카페 바로가기', '후원 링크', '다시보기' 등 추가 버튼</small>
+                            </div>
+
+                            <!-- Custom Emoji & Filter Options (Features 10, 86, 98) -->
+                            <div style="display:flex;flex-direction:column;gap:8px;background:var(--paper);padding:12px;border-radius:10px;border:1px solid var(--line);">
+                                <label style="font-size:13px;display:flex;align-items:center;gap:8px;cursor:pointer;">
+                                    <input type="checkbox" id="modal-exclude-membership">
+                                    <span>멤버십 / 유료 회원 전용 콘텐츠 알림 제외 (Feature 86)</span>
+                                </label>
+                                <label style="font-size:13px;display:flex;align-items:center;gap:8px;cursor:pointer;">
+                                    <input type="checkbox" id="modal-drops-active" checked>
+                                    <span>치지직 인게임 드롭스(Drops) 활성화 태그 감지 및 부착 (Feature 98)</span>
+                                </label>
+                            </div>
+
+                            <!-- Enabled Toggle -->
+                            <label class="switch-label">
+                                알림 활성화
+                                <input id="modal-enabled" class="switch" type="checkbox" checked>
+                            </label>
+
+                            <p class="form-error" id="modal-form-error" style="display:none;"></p>
                         </div>
-                        <small>수신을 원하는 방송 이벤트만 체크하세요.</small>
+
+                        <!-- Right Column: WYSIWYG Live Embed Preview (Feature 1) -->
+                        <div class="wysiwyg-preview-col" style="display:flex;flex-direction:column;gap:10px;">
+                            <div class="wysiwyg-header-label">
+                                <i class="fab fa-discord" style="color:#5865f2;font-size:14px;"></i>
+                                실시간 Discord Components v2 위지윅 미리보기
+                            </div>
+                            <div class="wysiwyg-preview-panel">
+                                <div class="discord-message-mock">
+                                    <div class="discord-avatar-mock" id="prev-bot-avatar">
+                                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTL5o8WMTcizruTWGFYaAhK61h-fAJWIeRGGI5g8NC9dA&s=10" alt="Avatar" id="prev-avatar-img">
+                                    </div>
+                                    <div class="discord-message-body">
+                                        <div class="discord-bot-author">
+                                            <span id="prev-bot-name">DaMoA</span>
+                                            <span class="discord-bot-badge">앱</span>
+                                            <span class="discord-timestamp">오늘 오후 5:00</span>
+                                        </div>
+
+                                        <!-- Mention row preview -->
+                                        <div id="prev-mention-row" style="display:none;font-size:14px;color:#f2f3f5;">
+                                            <span class="discord-mention-tag" id="prev-mention-role">@역할</span>
+                                            <span id="prev-mention-custom-msg" style="margin-left:6px;"></span>
+                                        </div>
+
+                                        <!-- Components v2 Container -->
+                                        <div class="discord-v2-container" id="prev-v2-container">
+                                            <!-- Author Section with Accessory -->
+                                            <div class="discord-v2-author-row">
+                                                <div>
+                                                    <div class="discord-v2-author-text" id="prev-author-name">크리에이터 이름</div>
+                                                    <div style="font-size:11px;color:#949ba4;" id="prev-platform-sub">-# 오늘 오후 5:00 · 치지직</div>
+                                                </div>
+                                                <img class="discord-v2-accessory-img" id="prev-author-img" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTL5o8WMTcizruTWGFYaAhK61h-fAJWIeRGGI5g8NC9dA&s=10" alt="Creator">
+                                            </div>
+
+                                            <div class="discord-v2-divider"></div>
+
+                                            <!-- Body Text -->
+                                            <div class="discord-v2-content" id="prev-body-text">
+                                                <strong>방송 시작</strong><br><br>
+                                                🔴 라이브 방송 시작<br>
+                                                오늘의 종합 게임 방송입니다!
+                                            </div>
+
+                                            <!-- Thumbnail image -->
+                                            <img class="discord-v2-thumb" id="prev-banner-img" src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=60" alt="Stream Banner">
+
+                                            <!-- Buttons Action Row -->
+                                            <div class="discord-v2-buttons-row" id="prev-buttons-row">
+                                                <a class="discord-link-btn" href="#" onclick="return false;">
+                                                    <i class="fas fa-external-link-alt" style="font-size:11px;"></i> 원문 보기
+                                                </a>
+                                            </div>
+
+                                            <div class="discord-v2-divider"></div>
+
+                                            <!-- Footer -->
+                                            <div class="discord-v2-footer" id="prev-footer-text">
+                                                치지직 | 2026.10.13 17:00:00
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Custom Message (optional) -->
-                    <label class="field">
-                        맞춤 메시지 (선택 사항)
-                        <input type="text" id="modal-custom-msg" placeholder="예: 지금 바로 방송 보러 오세요! ✨">
-                    </label>
-
-                    <!-- Enabled Toggle -->
-                    <label class="switch-label">
-                        알림 활성화
-                        <input id="modal-enabled" class="switch" type="checkbox" checked>
-                    </label>
-
-                    <p class="form-error" id="modal-form-error" style="display:none;"></p>
-
-                    <div class="dialog-actions">
+                    <div class="dialog-actions" style="margin-top:20px;">
                         <button type="button" class="btn" id="btn-delete-slot" style="display:none;color:#d03d3d;border-color:#fca5a5;margin-right:auto;">
                             <i class="fas fa-trash-alt"></i> 삭제
                         </button>
