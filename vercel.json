@@ -106,11 +106,5 @@
       "source": "/api/(.*)",
       "destination": "/api/index.py"
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/status",
-      "schedule": "*/4 * * * *"
-    }
   ]
 }
