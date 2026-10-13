@@ -1038,8 +1038,26 @@ async function openConfigModal(slotNum = null, platform = null) {
             $('modal-platform').value = p;
             $('modal-platform').disabled = true;
             $('modal-target').value = item.target_url || '';
-            chSel.value = item.channel_id || '';
-            roleSel.value = item.role_id || '';
+            // Discord Snowflake IDs must be compared as strings (exceed JS MAX_SAFE_INTEGER)
+            const chIdStr = item.channel_id ? String(item.channel_id) : '';
+            const roleIdStr = item.role_id ? String(item.role_id) : '';
+            chSel.value = chIdStr;
+            // Verify that the channel option exists; if not, it means channels weren't loaded yet
+            if (chIdStr && !chSel.querySelector(`option[value="${chIdStr}"]`)) {
+                const opt = document.createElement('option');
+                opt.value = chIdStr;
+                opt.textContent = item.channel_name ? `# ${item.channel_name}` : `# ${chIdStr}`;
+                chSel.appendChild(opt);
+                chSel.value = chIdStr;
+            }
+            roleSel.value = roleIdStr;
+            if (roleIdStr && !roleSel.querySelector(`option[value="${roleIdStr}"]`)) {
+                const opt = document.createElement('option');
+                opt.value = roleIdStr;
+                opt.textContent = item.role_name ? `@ ${item.role_name}` : `@ ${roleIdStr}`;
+                roleSel.appendChild(opt);
+                roleSel.value = roleIdStr;
+            }
             $('modal-custom-msg').value = item.custom_message || '';
             $('modal-enabled').checked = !!item.enabled;
             if ($('modal-exclude-membership')) $('modal-exclude-membership').checked = !!item.exclude_membership;

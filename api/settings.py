@@ -72,6 +72,17 @@ def resolve_target_name(source, target_url):
             m = re.search(r'ci\.me/@?([^/?#]+)', target_url)
             if m:
                 return m.group(1).strip()
+        elif source == 'spotify':
+            # Clean UTM params and try oEmbed
+            clean_url = re.sub(r'[?&](?:si|utm_source|utm_medium|utm_campaign)=[^&]*', '', target_url)
+            clean_url = clean_url.rstrip('?&')
+            r = requests.get(
+                f'https://open.spotify.com/oembed?url={clean_url}',
+                headers={'User-Agent': 'DaMoABot/1.0.0'},
+                timeout=4
+            )
+            if r.status_code == 200:
+                return r.json().get('title')
     except Exception:
         pass
     return None
@@ -296,6 +307,19 @@ def handle_settings(path=''):
             d['kinds'] = kinds
             d['kinds_labels'] = [PLATFORM_KIND_LABELS.get(k, k) for k in kinds]
             d['enabled'] = bool(d.get('enabled', 0))
+
+            # Discord Snowflake IDs must be returned as strings to prevent JS float precision loss
+            # (Discord IDs exceed Number.MAX_SAFE_INTEGER = 2^53-1)
+            if d.get('channel_id') is not None:
+                d['channel_id'] = str(d['channel_id'])
+            if d.get('role_id') is not None:
+                d['role_id'] = str(d['role_id'])
+
+            # channel_name / role_name: 봇이 저장해 놓은 값 없으면 None (프론트 select로 표시)
+            if 'channel_name' not in d:
+                d['channel_name'] = None
+            if 'role_name' not in d:
+                d['role_name'] = None
 
             # target_name이 없으면 자동 조회 및 보완
             if not d.get('target_name') and d.get('target_url'):
