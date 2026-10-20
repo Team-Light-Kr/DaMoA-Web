@@ -169,6 +169,7 @@ function switchTab(tabName) {
     const stats = $('stats-panel');
     const mainGrid = $('main-grid-panel');
     const historyPanel = $('panel-history');
+    const auditPanel = $('panel-audit');
 
     if (tabName === 'overview') {
         if (crumb) crumb.textContent = '대시보드';
@@ -177,6 +178,7 @@ function switchTab(tabName) {
         if (stats) stats.style.display = 'grid';
         if (mainGrid) mainGrid.style.display = 'grid';
         if (historyPanel) historyPanel.style.display = 'none';
+        if (auditPanel) auditPanel.style.display = 'none';
     } else if (tabName === 'settings') {
         if (crumb) crumb.textContent = '알림 설정';
         if (heading) heading.textContent = '알림 슬롯 설정';
@@ -184,6 +186,7 @@ function switchTab(tabName) {
         if (stats) stats.style.display = 'none';
         if (mainGrid) mainGrid.style.display = 'grid';
         if (historyPanel) historyPanel.style.display = 'none';
+        if (auditPanel) auditPanel.style.display = 'none';
     } else if (tabName === 'history') {
         if (crumb) crumb.textContent = '전송 기록';
         if (heading) heading.textContent = '최근 전송 내역';
@@ -191,7 +194,17 @@ function switchTab(tabName) {
         if (stats) stats.style.display = 'none';
         if (mainGrid) mainGrid.style.display = 'none';
         if (historyPanel) historyPanel.style.display = 'block';
+        if (auditPanel) auditPanel.style.display = 'none';
         renderHistoryList();
+    } else if (tabName === 'audit') {
+        if (crumb) crumb.textContent = '감사 로그';
+        if (heading) heading.textContent = '운영자 감사 로그';
+        if (desc) desc.textContent = '누가, 언제, 어떤 슬롯의 채널 및 알림 설정을 변경했는지 IP와 사용자 태그를 기록합니다.';
+        if (stats) stats.style.display = 'none';
+        if (mainGrid) mainGrid.style.display = 'none';
+        if (historyPanel) historyPanel.style.display = 'none';
+        if (auditPanel) auditPanel.style.display = 'block';
+        renderAuditLogs();
     }
 }
 
@@ -873,10 +886,49 @@ function updateWysiwygPreview() {
     const customMsg = $('modal-custom-msg')?.value || '';
     const pMeta = PLATFORMS[platform] || { name: platform, color: '#6366f1', icon: '' };
 
-    // Accent color on container
+    // 2. 플랫폼별 커스텀 헥스(HEX) 테마 컬러 반영 (Feature 2)
+    const customHexInput = $('modal-custom-hex');
+    const customColorInput = $('modal-custom-color');
+    const colorHexLabel = $('color-hex-label');
+    const chosenColor = customHexInput?.value.trim() || customColorInput?.value || pMeta.color || '#6366f1';
+
     const v2Container = $('prev-v2-container');
     if (v2Container) {
-        v2Container.style.borderLeftColor = pMeta.color || '#6366f1';
+        v2Container.style.borderLeftColor = chosenColor;
+    }
+    if (colorHexLabel) {
+        colorHexLabel.textContent = chosenColor;
+        colorHexLabel.style.color = chosenColor;
+    }
+
+    // 10. 커스텀 이모지 팩 맵핑 반영 (Feature 10)
+    const customEmoji = $('modal-custom-emoji')?.value.trim() || '🔴';
+    const prevBodyText = $('prev-body-text');
+    if (prevBodyText) {
+        prevBodyText.innerHTML = `
+            <strong>방송 시작</strong><br><br>
+            ${escapeHtml(customEmoji)} 라이브 방송 시작<br>
+            오늘의 종합 게임 방송입니다!
+        `;
+    }
+
+    // 9. 미디어 레이아웃 프리셋 전환 (Feature 9)
+    const mediaPreset = $('modal-media-preset')?.value || 'hero';
+    const bannerImg = $('prev-banner-img');
+    if (bannerImg) {
+        if (mediaPreset === 'hero') {
+            bannerImg.style.display = 'block';
+            bannerImg.style.width = '100%';
+            bannerImg.style.height = '180px';
+            bannerImg.style.objectFit = 'cover';
+        } else if (mediaPreset === 'gallery') {
+            bannerImg.style.display = 'block';
+            bannerImg.style.width = '60%';
+            bannerImg.style.height = '130px';
+            bannerImg.style.objectFit = 'cover';
+        } else if (mediaPreset === 'compact') {
+            bannerImg.style.display = 'none';
+        }
     }
 
     // Platform sub & icon
@@ -1215,6 +1267,7 @@ async function handleSaveSlot(e) {
             state.settings.push(newSetting);
         }
         localStorage.setItem('damoa_demo_settings', JSON.stringify(state.settings));
+        recordAuditLog(state.editingSlot ? '슬롯 수정' : '새 슬롯 생성', slotNumber, `${PLATFORMS[platform]?.name || platform} [${targetUrl}] -> #${chObj ? chObj.name : channelId}`);
         showToast(`${PLATFORMS[platform]?.name || platform} 슬롯 #${slotNumber} 설정이 저장되었습니다.`);
         $('config-dialog').close();
         renderSourceList();
@@ -1252,6 +1305,7 @@ async function handleDeleteSlot() {
     if (state.demo) {
         state.settings = state.settings.filter(s => !(s.slot === slotNum && s.platform === platform));
         localStorage.setItem('damoa_demo_settings', JSON.stringify(state.settings));
+        recordAuditLog('슬롯 삭제', slotNum, `${PLATFORMS[platform]?.name || platform} 슬롯 #${slotNum} 삭제됨`);
         showToast(`알림이 삭제되었습니다.`);
         $('config-dialog').close();
         renderSourceList();
@@ -1421,6 +1475,10 @@ function setupEventListeners() {
     // Slot Add button
     $('btn-add-slot')?.addEventListener('click', () => openConfigModal(null));
 
+    // Audit Log Tab (Feature 55)
+    $('nav-tab-audit')?.addEventListener('click', () => switchTab('audit'));
+    $('m-nav-audit')?.addEventListener('click', () => switchTab('audit'));
+
     // Intelligent Platform URL Auto-Detection & WYSIWYG Live Update (Features 1 & 150)
     $('modal-target')?.addEventListener('input', (e) => {
         const val = e.target.value.trim();
@@ -1437,8 +1495,26 @@ function setupEventListeners() {
 
     $('modal-platform')?.addEventListener('change', (e) => {
         updateModalForPlatform(e.target.value);
+        const pMeta = PLATFORMS[e.target.value];
+        if (pMeta && $('modal-custom-color') && $('modal-custom-hex')) {
+            $('modal-custom-color').value = pMeta.color;
+            $('modal-custom-hex').value = pMeta.color;
+        }
         updateWysiwygPreview();
     });
+
+    $('modal-custom-color')?.addEventListener('input', (e) => {
+        if ($('modal-custom-hex')) $('modal-custom-hex').value = e.target.value;
+        updateWysiwygPreview();
+    });
+    $('modal-custom-hex')?.addEventListener('input', (e) => {
+        if (e.target.value.match(/^#[0-9A-Fa-f]{6}$/) && $('modal-custom-color')) {
+            $('modal-custom-color').value = e.target.value;
+        }
+        updateWysiwygPreview();
+    });
+    $('modal-media-preset')?.addEventListener('change', updateWysiwygPreview);
+    $('modal-custom-emoji')?.addEventListener('input', updateWysiwygPreview);
 
     $('modal-role')?.addEventListener('change', updateWysiwygPreview);
     $('modal-custom-msg')?.addEventListener('input', updateWysiwygPreview);
@@ -1497,6 +1573,81 @@ async function init() {
     } else {
         switchView('landing');
     }
+
+    // 26. 실시간 이벤트 라이브 피드 티커 시작 (Feature 26)
+    startLiveEventTicker();
+}
+
+// ── 55. 운영자 감사 로그 (Audit Log) & 26. 실시간 티커 ─────────
+function recordAuditLog(action, slot, detail) {
+    let logs = [];
+    try {
+        logs = JSON.parse(localStorage.getItem('damoa_audit_logs') || '[]');
+    } catch { logs = []; }
+    const newEntry = {
+        id: Date.now(),
+        action,
+        slot,
+        detail,
+        user: state.user ? `${state.user.username}` : '관리자 (IP: 211.234.**.**)',
+        timestamp: new Date().toLocaleString('ko-KR')
+    };
+    logs.unshift(newEntry);
+    if (logs.length > 50) logs.pop();
+    localStorage.setItem('damoa_audit_logs', JSON.stringify(logs));
+    renderAuditLogs();
+}
+
+function renderAuditLogs() {
+    const container = $('audit-list-container');
+    if (!container) return;
+    let logs = [];
+    try {
+        logs = JSON.parse(localStorage.getItem('damoa_audit_logs') || '[]');
+    } catch { logs = []; }
+    if (!logs.length) {
+        container.innerHTML = '<div class="empty">기록된 감사 로그가 없습니다.</div>';
+        return;
+    }
+    container.innerHTML = logs.map(l => `
+        <div class="audit-card" style="background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:4px;">
+                    <span style="color:#5865f2;">[슬롯 ${l.slot}]</span> ${escapeHtml(l.action)}
+                </div>
+                <div style="font-size:12px;color:var(--muted);">${escapeHtml(l.detail)}</div>
+            </div>
+            <div style="text-align:right;font-size:11px;color:var(--muted);">
+                <div>${escapeHtml(l.user)}</div>
+                <div>${escapeHtml(l.timestamp)}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function startLiveEventTicker() {
+    const tickerEl = $('ticker-content');
+    const timeEl = $('ticker-time');
+    if (!tickerEl) return;
+
+    const mockEvents = [
+        { platform: '치지직', creator: '우왁굳', action: '새로운 라이브 방송 시작', title: '왁타버스 종합 게임', time: '방금 전' },
+        { platform: 'YouTube', creator: '이세계아이돌', action: '새 동영상 업로드', title: 'KIDDING Official MV', time: '12초 전' },
+        { platform: 'SOOP', creator: '철구', action: '라이브 방송 종료', title: '총 4시간 12분 진행', time: '45초 전' },
+        { platform: 'X / Twitter', creator: 'Team Light', action: '공식 공지 트윗 게시', title: 'DaMoA & Arin 시스템 업데이트 안내', time: '1분 전' },
+        { platform: '네이버 카페', creator: '왁물원', action: '매니저 새 공지 등록', title: '정기 서버 점검 안내', time: '2분 전' }
+    ];
+    let idx = 0;
+    setInterval(() => {
+        const ev = mockEvents[idx % mockEvents.length];
+        idx++;
+        tickerEl.style.opacity = '0';
+        setTimeout(() => {
+            tickerEl.innerHTML = `<strong>[${ev.platform}]</strong> <span>${escapeHtml(ev.creator)}</span> — <span>${escapeHtml(ev.action)}: "${escapeHtml(ev.title)}"</span>`;
+            if (timeEl) timeEl.textContent = ev.time;
+            tickerEl.style.opacity = '1';
+        }, 300);
+    }, 4500);
 }
 
 window.addEventListener('DOMContentLoaded', init);

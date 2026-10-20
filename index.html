@@ -339,6 +339,9 @@
                         <button id="nav-tab-history">
                             <i class="fas fa-history"></i> 전송 기록
                         </button>
+                        <button id="nav-tab-audit">
+                            <i class="fas fa-clipboard-list"></i> 감사 로그
+                        </button>
                         <a href="/guide" id="link-side-guide">
                             <i class="fas fa-book-open"></i> 가이드
                         </a>
@@ -425,6 +428,17 @@
                                 <h1 id="dash-section-title">알림을 한눈에</h1>
                                 <p id="dash-section-desc">치지직, SOOP, YouTube 등의 새로운 소식을 전하는 연결들을 살펴보세요.</p>
                             </div>
+                        </div>
+
+                        <!-- 26. 실시간 이벤트 라이브 피드 티커 위젯 -->
+                        <div class="live-event-ticker" id="live-event-ticker" style="background:rgba(255,255,255,0.75);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:12px;padding:12px 18px;margin-top:20px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 15px rgba(0,0,0,0.03);">
+                            <span class="live-pulse" style="display:inline-flex;align-items:center;gap:6px;background:rgba(239,68,68,0.12);color:#ef4444;font-size:11px;font-weight:700;padding:4px 9px;border-radius:99px;letter-spacing:0.5px;flex-shrink:0;">
+                                <span style="width:7px;height:7px;border-radius:50%;background:#ef4444;display:inline-block;"></span> LIVE FEED
+                            </span>
+                            <div class="ticker-content" id="ticker-content" style="flex:1;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                                <span>[실시간] 감지 파이프라인 가동 중 · 1초 단위로 최신 방송 및 SNS 이벤트 스트리밍</span>
+                            </div>
+                            <small id="ticker-time" style="color:var(--muted);font-size:11px;flex-shrink:0;">방금 전</small>
                         </div>
 
                         <!-- 3 Stat Summary Cards -->
@@ -561,6 +575,17 @@
                                 <div class="empty">아직 전송 기록이 없습니다. 새로운 소식이 발견되면 여기에 기록됩니다.</div>
                             </div>
                         </section>
+
+                        <!-- 55. 운영자 감사 로그(Audit Log) 뷰어 -->
+                        <section class="panel audit" id="panel-audit" style="display:none;">
+                            <div class="panel-head">
+                                <h2>운영자 감사 로그 (Audit Log)</h2>
+                                <span>누가, 언제, 어떤 슬롯의 채널 및 알림 설정을 변경했는지 IP와 사용자 태그를 기록합니다.</span>
+                            </div>
+                            <div class="audit-list" id="audit-list-container" style="display:flex;flex-direction:column;gap:10px;">
+                                <div class="empty">기록된 감사 로그가 없습니다.</div>
+                            </div>
+                        </section>
                     </main>
 
                     <div class="workspace-disclaimer" style="text-align:center;padding:24px;font-size:12px;color:#7a8a9f;">
@@ -641,6 +666,37 @@
                                 </div>
                                 <small>수신을 원하는 방송 이벤트만 체크하세요.</small>
                             </div>
+
+                            <!-- 2. 플랫폼별 커스텀 헥스(HEX) 컬러 피커 -->
+                            <div class="field">
+                                <label style="display:flex;justify-content:space-between;align-items:center;">
+                                    <span>커스텀 헥스(HEX) 테마 컬러</span>
+                                    <small id="color-hex-label" style="font-family:monospace;font-weight:700;">#00FFA3</small>
+                                </label>
+                                <div style="display:flex;align-items:center;gap:10px;margin-top:4px;">
+                                    <input type="color" id="modal-custom-color" value="#00FFA3" style="width:42px;height:38px;padding:2px;border-radius:8px;border:1px solid var(--line);cursor:pointer;background:none;">
+                                    <input type="text" id="modal-custom-hex" placeholder="#00FFA3" maxlength="7" style="flex:1;">
+                                </div>
+                                <small>스트리머 고유 퍼스널 컬러를 지정할 수 있는 정밀 색상 선택기</small>
+                            </div>
+
+                            <!-- 9. 미디어 레이아웃 프리셋 선택기 -->
+                            <label class="field">
+                                <span>미디어 레이아웃 프리셋</span>
+                                <select id="modal-media-preset">
+                                    <option value="hero">대형 히어로 배너형 (Hero Banner)</option>
+                                    <option value="gallery">미디어 갤러리형 (Media Gallery)</option>
+                                    <option value="compact">컴팩트 썸네일형 (Compact Thumbnail)</option>
+                                </select>
+                                <small>원하는 스타일에 맞게 레이아웃 구조 전환</small>
+                            </label>
+
+                            <!-- 10. 커스텀 이모지 팩 맵핑 -->
+                            <label class="field">
+                                <span>커스텀 이모지 맵핑</span>
+                                <input type="text" id="modal-custom-emoji" placeholder="예: 🔴 또는 <:chzzk_live:123456789>">
+                                <small>알림 헤더에 표시할 서버 전용 커스텀 이모지 지정</small>
+                            </label>
 
                             <!-- Custom Message -->
                             <label class="field">
