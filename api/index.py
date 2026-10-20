@@ -32,15 +32,19 @@ DISCORD_API_BASE = 'https://discord.com/api/v10'
 
 # Database configuration
 def _clean_neon_url(raw_url):
-    default_url = 'postgresql://neondb_owner:npg_qoNf2Brm7KwE@ep-summer-bonus-b5euqtai-pooler.c-7.us-east-2.aws.neon.tech/neondb?sslmode=require'
-    raw = (raw_url or default_url).strip()
+    default_url = 'postgresql://postgres.wfalcgmgfmvphhtvzqdp:teamlight654329@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require'
+    raw = (raw_url or os.getenv('SUPABASE_DB_URL') or os.getenv('NEON_DB_URL') or os.getenv('DATABASE_URL') or default_url).strip()
+    if 'db.wfalcgmgfmvphhtvzqdp.supabase.co' in raw:
+        raw = 'postgresql://postgres.wfalcgmgfmvphhtvzqdp:teamlight654329@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require'
     cleaned = re.sub(r'[?&]channel_binding=[^&]*', '', raw).strip()
     if '?' not in cleaned and '&' in cleaned:
         cleaned = cleaned.replace('&', '?', 1)
+    if 'sslmode=' not in cleaned:
+        cleaned += ('&' if '?' in cleaned else '?') + 'sslmode=require'
     return cleaned
 
-DEFAULT_NEON_DB_URL = 'postgresql://neondb_owner:npg_qoNf2Brm7KwE@ep-summer-bonus-b5euqtai-pooler.c-7.us-east-2.aws.neon.tech/neondb?sslmode=require'
-NEON_DB_URL = _clean_neon_url(os.getenv('NEON_DB_URL') or os.getenv('DATABASE_URL') or DEFAULT_NEON_DB_URL)
+DEFAULT_NEON_DB_URL = 'postgresql://postgres.wfalcgmgfmvphhtvzqdp:teamlight654329@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require'
+NEON_DB_URL = _clean_neon_url(os.getenv('SUPABASE_DB_URL') or os.getenv('NEON_DB_URL') or os.getenv('DATABASE_URL') or DEFAULT_NEON_DB_URL)
 USE_NEON = bool(NEON_DB_URL)
 
 # Bot Token configuration

@@ -34,9 +34,12 @@ def check_bot_guild(path=''):
 
     try:
         import re
-        raw_url = (os.getenv('NEON_DB_URL') or os.getenv('DATABASE_URL') or 'postgresql://neondb_owner:npg_qoNf2Brm7KwE@ep-summer-bonus-b5euqtai-pooler.c-7.us-east-2.aws.neon.tech/neondb?sslmode=require').strip()
+        raw_url = (os.getenv('SUPABASE_DB_URL') or os.getenv('NEON_DB_URL') or os.getenv('DATABASE_URL') or 'postgresql://postgres.wfalcgmgfmvphhtvzqdp:teamlight654329@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require').strip()
+        if 'db.wfalcgmgfmvphhtvzqdp.supabase.co' in raw_url:
+            raw_url = 'postgresql://postgres.wfalcgmgfmvphhtvzqdp:teamlight654329@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require'
         neon_url = re.sub(r'[?&]channel_binding=[^&]*', '', raw_url).strip()
         if '?' not in neon_url and '&' in neon_url: neon_url = neon_url.replace('&', '?', 1)
+        if 'sslmode=' not in neon_url: neon_url += ('&' if '?' in neon_url else '?') + 'sslmode=require'
         conn = psycopg2.connect(neon_url)
         cur = conn.cursor()
         cur.execute('SELECT 1 FROM settings WHERE guild=%s LIMIT 1', (guild_id,))

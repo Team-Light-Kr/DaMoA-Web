@@ -26,11 +26,15 @@ DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN') or os.getenv('DISCORD_TOKEN')
 VALID_PLATFORMS = {'youtube', 'chzzk', 'soop', 'cime', 'twitter', 'instagram', 'spotify', 'naver_cafe'}
 
 def clean_db_url(url=None):
-    default_url = 'postgresql://neondb_owner:npg_qoNf2Brm7KwE@ep-summer-bonus-b5euqtai-pooler.c-7.us-east-2.aws.neon.tech/neondb?sslmode=require'
-    raw = (url or os.getenv('NEON_DB_URL') or os.getenv('DATABASE_URL') or default_url).strip()
+    default_url = 'postgresql://postgres.wfalcgmgfmvphhtvzqdp:teamlight654329@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require'
+    raw = (url or os.getenv('SUPABASE_DB_URL') or os.getenv('NEON_DB_URL') or os.getenv('DATABASE_URL') or default_url).strip()
+    if 'db.wfalcgmgfmvphhtvzqdp.supabase.co' in raw:
+        raw = 'postgresql://postgres.wfalcgmgfmvphhtvzqdp:teamlight654329@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require'
     cleaned = re.sub(r'[?&]channel_binding=[^&]*', '', raw).strip()
     if '?' not in cleaned and '&' in cleaned:
         cleaned = cleaned.replace('&', '?', 1)
+    if 'sslmode=' not in cleaned:
+        cleaned += ('&' if '?' in cleaned else '?') + 'sslmode=require'
     return cleaned
 
 PLATFORM_KIND_LABELS = {
